@@ -28,10 +28,11 @@ class SyncMetaCampaigns implements ShouldQueue
     public function handle()
     {
         try {
-            Log::info("Starting sync for date: {$this->date}");
+            Log::info("Starting sync for date: {$this->date}, user: {$this->userId}");
 
             $metaAdsService = new MetaAdsService();
             $campaigns = $metaAdsService->getCampaigns($this->date);
+            Log::info("Processing " . count($campaigns) . " campaigns for date {$this->date}");
 
             foreach ($campaigns as $campaignData) {
                 $campaign = Campaign::updateOrCreate(

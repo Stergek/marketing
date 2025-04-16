@@ -29,12 +29,13 @@ class MetaAdsService
     {
         $response = Http::get("https://graph.facebook.com/v19.0/{$this->adAccountId}/campaigns", [
             'access_token' => $this->accessToken,
-            'fields' => 'id,name',
+            'fields' => 'id,name,insights{date_start,date_stop,spend,cpc,impressions,clicks,action_values,actions}',
+            'time_range' => json_encode(['since' => $date, 'until' => $date]),
             'limit' => 5,
         ]);
 
         $responseData = $response->json();
-        Log::info("Campaigns API Response for {$this->adAccountId}: " . json_encode($responseData));
+        Log::info("Campaigns API Response for {$this->adAccountId} on {$date}: " . json_encode($responseData));
 
         if (isset($responseData['error'])) {
             Log::error("Campaigns API Error: " . json_encode($responseData['error']));
@@ -42,53 +43,30 @@ class MetaAdsService
         }
 
         $campaigns = $responseData['data'] ?? [];
+        Log::info("Fetched " . count($campaigns) . " campaigns for date {$date}");
+
         $result = [];
 
         foreach ($campaigns as $campaign) {
-            $insightsResponse = Http::get("https://graph.facebook.com/v19.0/{$campaign['id']}/insights", [
-                'access_token' => $this->accessToken,
-                'fields' => 'date_start,date_stop,spend,cpc,impressions,clicks,action_values,actions',
-                'time_range' => json_encode(['since' => $date, 'until' => $date]),
-                'time_increment' => 1,
-            ]);
-
-            $insightsData = $insightsResponse->json();
-            Log::info("Insights API Response for campaign {$campaign['id']}: " . json_encode($insightsData));
-
-            if (isset($insightsData['error'])) {
-                Log::warning("Insights API error for campaign {$campaign['id']}: " . $insightsData['error']['message']);
-                continue;
-            }
-
-            $insights = $insightsData['data'][0] ?? null;
-            $spend = 0;
-            $cpc = 0;
-            $impressions = 0;
-            $clicks = 0;
+            $insights = $campaign['insights']['data'][0] ?? [];
+            $spend = $insights['spend'] ?? 0;
+            $cpc = $insights['cpc'] ?? 0;
+            $impressions = $insights['impressions'] ?? 0;
+            $clicks = $insights['clicks'] ?? 0;
             $revenue = 0;
 
-            if ($insights && $insights['date_start'] === $date) {
-                Log::info("Insights data for campaign {$campaign['id']} on date {$date}: " . json_encode($insights));
-                $spend = $insights['spend'] ?? 0;
-                $cpc = $insights['cpc'] ?? 0;
-                $impressions = $insights['impressions'] ?? 0;
-                $clicks = $insights['clicks'] ?? 0;
-
-                if (isset($insights['action_values'])) {
-                    foreach ($insights['action_values'] as $action) {
-                        if (in_array($action['action_type'], ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'])) {
-                            $revenue = $action['value'];
-                            break;
-                        }
+            if (isset($insights['action_values'])) {
+                foreach ($insights['action_values'] as $action) {
+                    if ($action['action_type'] == 'offsite_conversion.fb_pixel_purchase') {
+                        $revenue = $action['value'];
+                        break;
                     }
                 }
-            } else {
-                Log::info("No insights data for campaign {$campaign['id']} on date {$date}, using default values.");
             }
 
             $result[] = [
                 'campaign_id' => $campaign['id'],
-                'name' => $campaign['name'],
+                'name' => $campaign['name'] ?? 'Campaign ' . (count($result) + 1),
                 'spend' => $spend,
                 'cpc' => $cpc,
                 'revenue' => $revenue,
@@ -100,7 +78,6 @@ class MetaAdsService
 
         return $result;
     }
-
     public function getAdSets($campaignId, $date)
     {
         $response = Http::get("https://graph.facebook.com/v19.0/{$campaignId}/adsets", [
