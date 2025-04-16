@@ -1,3 +1,4 @@
+
 # CakePHP 3
 
 /vendor/*
@@ -23,3 +24,28 @@
 /app/Config/core.php
 /app/Config/database.php
 /vendors/*
+=======
+/.phpunit.cache
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/auth.json
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+>>>>>>> 1d67290 (initial commit)
