@@ -1,5 +1,7 @@
 <x-filament-panels::page>
-    <div class="flex flex-rows justify-between">
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Total Spend</h3>
             <p class="text-2xl text-gray-900 dark:text-gray-100">${{ $this->getStats()['total_spend'] }}</p>
@@ -15,5 +17,6 @@
         </div>
     </div>
 
+    <!-- Table -->
     {{ $this->table }}
 </x-filament-panels::page>

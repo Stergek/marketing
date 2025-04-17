@@ -23,15 +23,17 @@ class MetaAdsService
             Log::error("MetaAdsService: accessToken is not set in configuration.");
             throw new \Exception("Meta Ads accessToken is not configured.");
         }
+
+        // Log to confirm the version of MetaAdsService being used
+        Log::info("Using MetaAdsService version: Updated to remove campaign-level insights");
     }
 
     public function getCampaigns($date)
     {
         $response = Http::get("https://graph.facebook.com/v19.0/{$this->adAccountId}/campaigns", [
             'access_token' => $this->accessToken,
-            'fields' => 'id,name,insights{date_start,date_stop,spend,cpc,impressions,clicks,action_values,actions}',
-            'time_range' => json_encode(['since' => $date, 'until' => $date]),
-            'limit' => 5,
+            'fields' => 'id,name',
+            'limit' => 4,
         ]);
 
         $responseData = $response->json();
@@ -48,36 +50,16 @@ class MetaAdsService
         $result = [];
 
         foreach ($campaigns as $campaign) {
-            $insights = $campaign['insights']['data'][0] ?? [];
-            $spend = $insights['spend'] ?? 0;
-            $cpc = $insights['cpc'] ?? 0;
-            $impressions = $insights['impressions'] ?? 0;
-            $clicks = $insights['clicks'] ?? 0;
-            $revenue = 0;
-
-            if (isset($insights['action_values'])) {
-                foreach ($insights['action_values'] as $action) {
-                    if ($action['action_type'] == 'offsite_conversion.fb_pixel_purchase') {
-                        $revenue = $action['value'];
-                        break;
-                    }
-                }
-            }
-
             $result[] = [
                 'campaign_id' => $campaign['id'],
                 'name' => $campaign['name'] ?? 'Campaign ' . (count($result) + 1),
-                'spend' => $spend,
-                'cpc' => $cpc,
-                'revenue' => $revenue,
-                'impressions' => $impressions,
-                'clicks' => $clicks,
                 'date' => $date,
             ];
         }
 
         return $result;
     }
+
     public function getAdSets($campaignId, $date)
     {
         $response = Http::get("https://graph.facebook.com/v19.0/{$campaignId}/adsets", [

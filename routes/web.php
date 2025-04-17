@@ -1,9 +1,5 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MetaSyncController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
-Route::get('/sync', [SyncController::class, 'sync']);

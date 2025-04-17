@@ -17,8 +17,11 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot()
     {
-        //
+    \DB::listen(function ($query) {
+        \Log::info('Query Time: ' . $query->time . 'ms', ['sql' => $query->sql, 'bindings' => $query->bindings]);
+    });
     }
+
 }
