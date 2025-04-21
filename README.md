@@ -1,3 +1,11 @@
+# My App
+
+## Last Updated State (April 21, 2025)
+- Simplified the app by removing ad set and ad data fetching/saving.
+- Hardcoded the ad account ID (`act_123456789`) in `Campaigns.php` and `Kernel.php`.
+- Added a manual sync command: `php artisan sync:campaigns <date> <adAccountId>`.
+- Scheduled task runs daily at 2:00 AM to sync campaign data.
+- Removed unused models (`AdSet` and `Ad`) and their database tables (optional step pending).
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
