@@ -45,4 +45,10 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+
 }
+// class User extends Model
+// {
+//     use Notifiable;
+// }

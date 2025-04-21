@@ -2,25 +2,28 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Ad extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'ad_set_id',
         'ad_id',
+        'status', // Add status to fillable
+        'date',
+        'ad_set_id',
         'name',
         'ad_image',
         'spend',
+        'clicks',
+        'impressions',
         'cpc',
         'revenue',
-        'impressions',
-        'clicks',
-        'date',
     ];
 
-    public function adSet(): BelongsTo
+    public function adSet()
     {
         return $this->belongsTo(AdSet::class);
     }
