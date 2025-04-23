@@ -3,6 +3,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Setting;
 
 class MetaAdsService
 {
@@ -10,28 +11,29 @@ class MetaAdsService
 
     public function __construct()
     {
-        $this->accessToken = config('services.meta.access_token');
+        $setting = Setting::first();
+        $this->accessToken = $setting ? $setting->meta_access_token : null;
 
         if (empty($this->accessToken)) {
-            Log::error("MetaAdsService: accessToken is not set in configuration.");
-            throw new \Exception("Meta Ads accessToken is not configured.");
+            Log::error("MetaAdsService: accessToken is not set in settings.");
+            throw new \Exception("Meta Ads accessToken is not configured. Please set it in the Settings page.");
         }
 
-        // Log to confirm the version of MetaAdsService being used
         Log::info("Using MetaAdsService version: Simplified for campaign insights only");
     }
 
     public function getCampaigns($adAccountId, $date)
     {
-        // Fetch campaigns with basic fields
-        $response = Http::get("https://graph.facebook.com/v22.0/{$adAccountId}/campaigns", [
+        $apiAdAccountId = "act_{$adAccountId}";
+
+        $response = Http::get("https://graph.facebook.com/v22.0/{$apiAdAccountId}/campaigns", [
             'access_token' => $this->accessToken,
             'fields' => 'id,name',
             'limit' => 10,
         ]);
 
         $responseData = $response->json();
-        Log::info("Campaigns API Response for {$adAccountId} on {$date}: " . json_encode($responseData));
+        Log::info("Campaigns API Response for {$apiAdAccountId} on {$date}: " . json_encode($responseData));
 
         if (isset($responseData['error'])) {
             Log::error("Campaigns API Error: " . json_encode($responseData['error']));
@@ -41,7 +43,6 @@ class MetaAdsService
         $campaigns = $responseData['data'] ?? [];
         Log::info("Fetched " . count($campaigns) . " campaigns for date {$date}");
 
-        // Prepare batch request for campaign insights
         $batch = [];
         foreach ($campaigns as $campaign) {
             $batch[] = [
@@ -131,7 +132,6 @@ class MetaAdsService
             throw new \Exception(json_encode($responseData['error']));
         }
 
-        // Log x-app-usage header if available
         if ($response->hasHeader('x-app-usage')) {
             Log::info("API Usage Headers", ['x-app-usage' => $response->header('x-app-usage')]);
         }
