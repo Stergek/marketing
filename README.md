@@ -1,4 +1,11 @@
 # My App
+## Last Updated State (April 23, 2025)
+- Fixed date filter reactivity in Campaigns page.
+- Normalized ad_account_id to remove act_ prefix in database, adding it in API calls.
+- Reverted date formatting and error handling updates in SyncCampaigns, SyncMetaCampaigns, and MetaAdsService.
+- Manual sync command: `php artisan sync:campaigns 2025-04-22` (use YYYY-MM-DD format).
+- Scheduled task syncs daily at 2:00 AM.
+- Ensure queue worker is running (`php artisan queue:work`) to process jobs.
 
 ## Last Updated State (April 21, 2025)
 - Simplified the app by removing ad set and ad data fetching/saving.
