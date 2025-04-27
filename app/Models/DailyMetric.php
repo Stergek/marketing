@@ -5,25 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Campaign extends Model
+class DailyMetric extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'campaign_id',
         'ad_account_id',
-        'name',
         'date',
         'spend',
         'cpc',
         'impressions',
         'clicks',
         'inline_link_clicks',
-        'inline_link_click_ctr',
         'revenue',
+        'roas',
+        'cpm',
+        'ctr',
         'last_synced_at',
-        'created_at',
-        'updated_at',
     ];
 
     protected $casts = [
@@ -32,9 +30,10 @@ class Campaign extends Model
         'impressions' => 'integer',
         'clicks' => 'integer',
         'inline_link_clicks' => 'integer',
-        'inline_link_click_ctr' => 'decimal:2',
         'revenue' => 'decimal:2',
-        'date' => 'date',
+        'roas' => 'decimal:2',
+        'cpm' => 'decimal:2',
+        'ctr' => 'decimal:2',
         'last_synced_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

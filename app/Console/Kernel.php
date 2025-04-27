@@ -11,10 +11,9 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->call(function () {
-            $date = now()->toDateString(); // Sync for today
-            $adAccountId = 'act_1124601191667195'; // Must match Campaigns.php
-            SyncMetaCampaigns::dispatch($date, $adAccountId);
-        })->dailyAt('02:00'); // Run daily at 2:00 AM
+            $date = now()->toDateString(); // Always YYYY-MM-DD
+            SyncMetaCampaigns::dispatch($date);
+        })->dailyAt('02:00');
     }
 
     protected function commands()

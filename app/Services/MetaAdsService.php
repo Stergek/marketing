@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
@@ -28,7 +29,7 @@ class MetaAdsService
 
         $response = Http::get("https://graph.facebook.com/v22.0/{$apiAdAccountId}/campaigns", [
             'access_token' => $this->accessToken,
-            'fields' => 'id,name',
+            'fields' => 'id,name,status,start_time,stop_time',
             'limit' => 10,
         ]);
 
@@ -47,7 +48,7 @@ class MetaAdsService
         foreach ($campaigns as $campaign) {
             $batch[] = [
                 'method' => 'GET',
-                'relative_url' => "v22.0/{$campaign['id']}/insights?fields=date_start,date_stop,spend,cpc,impressions,clicks,action_values,actions&time_range=" . urlencode(json_encode(['since' => $date, 'until' => $date])) . "&time_increment=1",
+                'relative_url' => "v22.0/{$campaign['id']}/insights?fields=date_start,date_stop,spend,cpc,impressions,clicks,inline_link_clicks,inline_link_click_ctr,action_values&time_range=" . urlencode(json_encode(['since' => $date, 'until' => $date])) . "&time_increment=1",
             ];
         }
 
@@ -67,6 +68,8 @@ class MetaAdsService
                 $cpc = 0;
                 $impressions = 0;
                 $clicks = 0;
+                $inlineLinkClicks = 0;
+                $inlineLinkClickCtr = 0;
                 $revenue = 0;
 
                 if ($insights && $insights['date_start'] === $date) {
@@ -75,6 +78,8 @@ class MetaAdsService
                     $cpc = $insights['cpc'] ?? 0;
                     $impressions = $insights['impressions'] ?? 0;
                     $clicks = $insights['clicks'] ?? 0;
+                    $inlineLinkClicks = $insights['inline_link_clicks'] ?? 0;
+                    $inlineLinkClickCtr = $insights['inline_link_click_ctr'] ?? 0;
 
                     if (isset($insights['action_values'])) {
                         foreach ($insights['action_values'] as $action) {
@@ -85,18 +90,24 @@ class MetaAdsService
                         }
                     }
                 } else {
-                    Log::info("No insights data for campaign {$campaign['id']} on date {$date}, using default values.");
+                    Log::info("No insights data for campaign {$campaign['id']} on date {$date}, using default values.", [
+                        'status' => $campaign['status'] ?? 'unknown',
+                        'start_time' => $campaign['start_time'] ?? 'not set',
+                        'stop_time' => $campaign['stop_time'] ?? 'not set',
+                    ]);
                 }
 
                 $result[] = [
                     'campaign_id' => $campaign['id'],
                     'name' => $campaign['name'] ?? 'Campaign ' . (count($result) + 1),
                     'date' => $date,
-                    'spend' => $spend,
-                    'cpc' => $cpc,
-                    'impressions' => $impressions,
-                    'clicks' => $clicks,
-                    'revenue' => $revenue,
+                    'spend' => number_format((float)$spend, 2, '.', ''),
+                    'cpc' => number_format((float)$cpc, 2, '.', ''),
+                    'impressions' => (int)$impressions,
+                    'clicks' => (int)$clicks,
+                    'inline_link_clicks' => (int)$inlineLinkClicks,
+                    'inline_link_click_ctr' => number_format((float)$inlineLinkClickCtr, 2, '.', ''),
+                    'revenue' => number_format((float)$revenue, 2, '.', ''),
                 ];
             }
         }
@@ -106,15 +117,111 @@ class MetaAdsService
                 'campaign_id' => 'default_' . $adAccountId,
                 'name' => 'Campaign 1',
                 'date' => $date,
-                'spend' => 0,
-                'cpc' => 0,
+                'spend' => '0.00',
+                'cpc' => '0.00',
                 'impressions' => 0,
                 'clicks' => 0,
-                'revenue' => 0,
+                'inline_link_clicks' => 0,
+                'inline_link_click_ctr' => '0.00',
+                'revenue' => '0.00',
             ];
         }
 
         return $result;
+    }
+
+    public function getAccountInsights($adAccountId, $date)
+    {
+        $apiAdAccountId = "act_{$adAccountId}";
+
+        Log::info("Fetching ad account insights for {$apiAdAccountId} on {$date}");
+
+        $response = Http::get("https://graph.facebook.com/v22.0/{$apiAdAccountId}/insights", [
+            'access_token' => $this->accessToken,
+            'time_range' => json_encode([
+                'since' => $date,
+                'until' => $date,
+            ]),
+            'fields' => 'spend,cpc,inline_link_clicks,inline_link_click_ctr,clicks,action_values,impressions',
+            'level' => 'account',
+            'action_attribution_windows' => json_encode(['1d_view', '7d_click']),
+        ]);
+
+        $responseData = $response->json();
+        Log::info("Account Insights API Response for {$apiAdAccountId} on {$date}: " . json_encode($responseData));
+
+        if (isset($responseData['error'])) {
+            Log::error("Account Insights API Error: " . json_encode($responseData['error']));
+            throw new \Exception(json_encode($responseData['error']));
+        }
+
+        if ($response->hasHeader('x-app-usage')) {
+            Log::info("API Usage Headers for Account Insights", ['x-app-usage' => $response->header('x-app-usage')]);
+        }
+
+        $insightsData = $responseData['data'][0] ?? null;
+
+        if (!$insightsData) {
+            Log::info("No insights data for ad account {$apiAdAccountId} on date {$date}, using default values.");
+            return [
+                'spend' => '0.00',
+                'cpc' => '0.00',
+                'impressions' => 0,
+                'clicks' => 0,
+                'inline_link_clicks' => 0,
+                'inline_link_click_ctr' => '0.00',
+                'revenue' => '0.00',
+                'cpm' => '0.00',
+                'ctr' => '0.00',
+                'roas' => '0.00',
+            ];
+        }
+
+        $revenue = 0;
+        if (isset($insightsData['action_values'])) {
+            Log::info("Action values for ad account {$apiAdAccountId} on {$date}: " . json_encode($insightsData['action_values']));
+            foreach ($insightsData['action_values'] as $action) {
+                if (in_array($action['action_type'], ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'])) {
+                    $revenue = (float)$action['value'];
+                    break;
+                }
+            }
+        } else {
+            Log::info("No action_values found for ad account {$apiAdAccountId} on {$date}");
+        }
+
+        $spend = (float)($insightsData['spend'] ?? 0);
+        $impressions = (int)($insightsData['impressions'] ?? 0);
+        $clicks = (int)($insightsData['clicks'] ?? 0);
+        $inlineLinkClicks = (int)($insightsData['inline_link_clicks'] ?? 0);
+        $inlineLinkClickCtr = (float)($insightsData['inline_link_click_ctr'] ?? 0);
+
+        // Fallback for CTR if inline_link_click_ctr is not available
+        $ctr = $inlineLinkClickCtr;
+        if ($ctr == 0 && $impressions > 0 && $inlineLinkClicks > 0) {
+            $ctr = ($inlineLinkClicks / $impressions) * 100;
+            Log::info("Calculated CTR for {$apiAdAccountId} on {$date} as fallback: {$ctr}");
+        }
+
+        // Calculate CPM manually
+        $cpm = $impressions > 0 ? ($spend / $impressions) * 1000 : 0;
+
+        $insights = [
+            'spend' => number_format($spend, 2, '.', ''),
+            'cpc' => number_format((float)($insightsData['cpc'] ?? 0), 2, '.', ''),
+            'impressions' => $impressions,
+            'clicks' => $clicks,
+            'inline_link_clicks' => $inlineLinkClicks,
+            'inline_link_click_ctr' => number_format($inlineLinkClickCtr, 2, '.', ''),
+            'revenue' => number_format($revenue, 2, '.', ''),
+            'cpm' => number_format($cpm, 2, '.', ''),
+            'ctr' => number_format($ctr, 2, '.', ''),
+            'roas' => $spend > 0 ? number_format($revenue / $spend, 2, '.', '') : '0.00',
+        ];
+
+        Log::info("Parsed insights for {$apiAdAccountId} on {$date}: " . json_encode($insights));
+
+        return $insights;
     }
 
     protected function batchRequest($batch)
