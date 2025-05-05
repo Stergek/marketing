@@ -1,5 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\MetaSyncController;
+use App\Http\Controllers\CustomPageController;
 
+// Route::get('/admin/test-custom', [CustomPageController::class, 'index'])->name('test-custom');
+
+Route::get('/test-tailwind', function () {
+    return view('test-tailwind');
+});

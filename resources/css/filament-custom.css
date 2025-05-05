@@ -1,0 +1,24 @@
+
+/* bg-gray-50 */
+/* body.fi-body {
+    background-color: #f9fafb; 
+} */
+
+/* dark:bg-gray-950 */
+/* body.dark .fi-body {
+    background-color: #09090B !important; 
+} */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.fi-table th,
+.fi-table td {
+    @apply whitespace-normal max-w-xs p-4;
+    line-height: 1.5rem;
+}
+
+.fi-table tr {
+    @apply h-16;
+}

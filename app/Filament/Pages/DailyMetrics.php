@@ -17,7 +17,6 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Notifications\Notification;
 use Filament\Tables\Table as FilamentTable;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
 class DailyMetrics extends Page implements HasTable
@@ -54,7 +53,7 @@ class DailyMetrics extends Page implements HasTable
                 ->send();
         }
 
-        // Load from session or query string
+        // Load from session or query string with defaults
         $this->startDate = $this->startDate ?? Session::get('daily_metrics_start_date') ?? now()->subDays(7)->toDateString();
         $this->endDate = $this->endDate ?? Session::get('daily_metrics_end_date') ?? now()->toDateString();
         $sessionRange = Session::get('daily_metrics_range', 'last_7_days');
@@ -66,12 +65,11 @@ class DailyMetrics extends Page implements HasTable
             'range' => $sessionRange,
         ];
 
-        // Validate and adjust range based on dates
+        // Adjust range based on dates
         $start = Carbon::parse($this->startDate)->startOfDay();
         $end = Carbon::parse($this->endDate)->endOfDay();
         $range = $sessionRange;
 
-        // Only override session range if dates don't match
         if ($range === 'last_7_days' && !($start->eq(now()->subDays(7)->startOfDay()) && $end->eq(now()->endOfDay()))) {
             $range = 'custom';
         } elseif ($range === 'last_30_days' && !($start->eq(now()->subDays(30)->startOfDay()) && $end->eq(now()->endOfDay()))) {
@@ -82,31 +80,10 @@ class DailyMetrics extends Page implements HasTable
             $range = 'custom';
         }
 
-        // Update filter state
         $this->tableFilters['date_range']['range'] = $range;
         Session::put('daily_metrics_range', $range);
-
-        // Debug: Log session and query string
-        Log::info("Debug: Initializing DailyMetrics", [
-            'session_start_date' => Session::get('daily_metrics_start_date'),
-            'session_end_date' => Session::get('daily_metrics_end_date'),
-            'session_range' => Session::get('daily_metrics_range'),
-            'query_start_date' => $this->startDate,
-            'query_end_date' => $this->endDate,
-            'calculated_range' => $range,
-            'table_filters' => $this->tableFilters,
-        ]);
-
         Session::put('daily_metrics_start_date', $this->startDate);
         Session::put('daily_metrics_end_date', $this->endDate);
-
-        Log::info("DailyMetrics page loaded", [
-            'ad_account_id' => $this->adAccountId,
-            'start_date' => $this->startDate,
-            'end_date' => $this->endDate,
-            'range' => $range,
-            'table_filters' => $this->tableFilters,
-        ]);
     }
 
     public function table(FilamentTable $table): FilamentTable
@@ -125,11 +102,6 @@ class DailyMetrics extends Page implements HasTable
             $start = Carbon::parse($this->startDate);
             $end = Carbon::parse($this->endDate);
         } catch (\Exception $e) {
-            Log::error("DailyMetrics Page: Invalid date format provided", [
-                'start_date' => $this->startDate,
-                'end_date' => $this->endDate,
-                'error' => $e->getMessage(),
-            ]);
             Notification::make()
                 ->title('Error')
                 ->body('Invalid date format. Please use DD-MM-YYYY.')
@@ -147,7 +119,7 @@ class DailyMetrics extends Page implements HasTable
             return $table->query(DailyMetric::query())->columns([])->filters([]);
         }
 
-        // Check for missing dates and dispatch sync jobs
+        // Check for missing or outdated data and dispatch sync jobs
         $metrics = DailyMetric::where('ad_account_id', $this->adAccountId)
             ->whereBetween('date', [$start, $end])
             ->orderBy('date')
@@ -159,52 +131,26 @@ class DailyMetrics extends Page implements HasTable
             $dateString = $date->toDateString();
             $metric = $metrics->firstWhere('date', $dateString);
 
-            // If no record exists, dispatch a sync job (applies to all dates that were never synced)
             if (!$metric) {
-                Log::info("Dispatching sync job for missing date {$dateString} on DailyMetrics page.");
                 SyncMetaCampaigns::dispatch($dateString, $forceSync, 'ad_account');
                 continue;
             }
 
-            // For yesterday, sync if last sync was before today at 03:00
             $isYesterday = $date->isSameDay(now()->subDay());
-            if ($isYesterday) {
-                $lastSyncTime = Carbon::parse($metric->last_synced_at);
-                $syncCutoff = now()->startOfDay()->addHours(3); // Today at 03:00
-                if ($lastSyncTime->lessThan($syncCutoff)) {
-                    Log::info("Dispatching sync job for yesterday {$dateString} on DailyMetrics page because last sync was before today at 03:00.", [
-                        'last_synced_at' => $lastSyncTime->toDateTimeString(),
-                        'sync_cutoff' => $syncCutoff->toDateTimeString(),
-                    ]);
-                    SyncMetaCampaigns::dispatch($dateString, $forceSync, 'ad_account');
-                }
+            if ($isYesterday && Carbon::parse($metric->last_synced_at)->lessThan(now()->startOfDay()->addHours(3))) {
+                SyncMetaCampaigns::dispatch($dateString, $forceSync, 'ad_account');
                 continue;
             }
 
-            // For today, sync only if last sync was more than 1 hour ago
             $isToday = $date->isSameDay(now());
-            if ($isToday) {
-                $lastSyncTime = Carbon::parse($metric->last_synced_at);
-                $hoursSinceLastSync = $lastSyncTime->diffInHours(now());
-                if ($hoursSinceLastSync >= 1) {
-                    Log::info("Dispatching sync job for today {$dateString} on DailyMetrics page due to cooldown.");
-                    SyncMetaCampaigns::dispatch($dateString, $forceSync, 'ad_account');
-                }
+            if ($isToday && Carbon::parse($metric->last_synced_at)->diffInHours(now()) >= 1) {
+                SyncMetaCampaigns::dispatch($dateString, $forceSync, 'ad_account');
             }
-            // For dates before yesterday, do not sync again if a record exists
         }
 
-        // Debug: Log the query being executed
         $query = DailyMetric::query()
             ->where('ad_account_id', $this->adAccountId)
             ->whereBetween('date', [$this->startDate, $this->endDate]);
-        Log::info("Executing table query", [
-            'start_date' => $this->startDate,
-            'end_date' => $this->endDate,
-            'ad_account_id' => $this->adAccountId,
-            'query' => $query->toSql(),
-            'bindings' => $query->getBindings(),
-        ]);
 
         return $table
             ->query($query)
@@ -296,7 +242,7 @@ class DailyMetrics extends Page implements HasTable
                                             break;
                                         case 'this_month':
                                             $startDate = now()->startOfMonth()->toDateString();
-                                            $endDate = now()->toDateString(); // Cap at today
+                                            $endDate = now()->toDateString();
                                             break;
                                         case 'custom':
                                             $startDate = $get('start_date') ?? now()->subDays(7)->toDateString();
@@ -306,19 +252,10 @@ class DailyMetrics extends Page implements HasTable
 
                                     $set('start_date', $startDate);
                                     $set('end_date', $endDate);
-                                    $set('range', $state);
                                     $this->tableFilters['date_range']['range'] = $state;
                                     $this->tableFilters['date_range']['start_date'] = $startDate;
                                     $this->tableFilters['date_range']['end_date'] = $endDate;
-
                                     $this->updateDateRange($startDate, $endDate, $state);
-
-                                    Log::info("Select range updated", [
-                                        'range' => $state,
-                                        'start_date' => $startDate,
-                                        'end_date' => $endDate,
-                                        'table_filters' => $this->tableFilters,
-                                    ]);
                                 }),
                             DatePicker::make('start_date')
                                 ->label('Start Date')
@@ -332,13 +269,6 @@ class DailyMetrics extends Page implements HasTable
                                     $this->tableFilters['date_range']['range'] = 'custom';
                                     $this->tableFilters['date_range']['start_date'] = $state;
                                     $this->updateDateRange($state, $get('end_date'), 'custom');
-
-                                    Log::info("Start date updated, set to custom", [
-                                        'start_date' => $state,
-                                        'end_date' => $get('end_date'),
-                                        'range' => 'custom',
-                                        'table_filters' => $this->tableFilters,
-                                    ]);
                                 }),
                             DatePicker::make('end_date')
                                 ->label('End Date')
@@ -352,23 +282,11 @@ class DailyMetrics extends Page implements HasTable
                                     $this->tableFilters['date_range']['range'] = 'custom';
                                     $this->tableFilters['date_range']['end_date'] = $state;
                                     $this->updateDateRange($get('start_date'), $state, 'custom');
-
-                                    Log::info("End date updated, set to custom", [
-                                        'start_date' => $get('start_date'),
-                                        'end_date' => $state,
-                                        'range' => 'custom',
-                                        'table_filters' => $this->tableFilters,
-                                    ]);
                                 }),
                         ])->columns(1),
                     ])
                     ->query(function ($query, array $data) {
                         if (!empty($data['start_date']) && !empty($data['end_date'])) {
-                            Log::info("Applying date range filter to query", [
-                                'start_date' => $data['start_date'],
-                                'end_date' => $data['end_date'],
-                                'range' => $data['range'],
-                            ]);
                             $query->whereBetween('date', [$data['start_date'], $data['end_date']]);
                         }
                     })
@@ -390,52 +308,13 @@ class DailyMetrics extends Page implements HasTable
 
     protected function updateDateRange(?string $startDate, ?string $endDate, ?string $range)
     {
-        Log::info("Date range filter updated", [
-            'new_start_date' => $startDate,
-            'new_end_date' => $endDate,
-            'new_range' => $range,
-            'old_start_date' => $this->startDate,
-            'old_end_date' => $this->endDate,
-            'table_filters_before' => $this->tableFilters,
-        ]);
+        if (!$startDate || !$endDate) return;
 
-        // Skip if either date is not set
-        if (!$startDate || !$endDate) {
-            Log::info("One or both dates not set, skipping table reset", [
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'range' => $range,
-            ]);
-            return;
-        }
-
-        // Validate date format
-        $datePattern = '/^\d{4}-\d{2}-\d{2}$/';
-        if (!preg_match($datePattern, $startDate) || !preg_match($datePattern, $endDate)) {
-            Log::error("Invalid date format", [
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'range' => $range,
-            ]);
-            Notification::make()
-                ->title('Error')
-                ->body('Invalid date format. Please use DD-MM-YYYY.')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        // Parse and validate dates
         try {
-            $start = Carbon::parse($startDate, 'UTC');
-            $end = Carbon::parse($endDate, 'UTC');
+            $start = Carbon::parse($startDate);
+            $end = Carbon::parse($endDate);
 
             if ($start->gt($end)) {
-                Log::error("Start date is after end date", [
-                    'start_date' => $startDate,
-                    'end_date' => $endDate,
-                    'range' => $range,
-                ]);
                 Notification::make()
                     ->title('Error')
                     ->body('Start date cannot be after end date.')
@@ -443,45 +322,25 @@ class DailyMetrics extends Page implements HasTable
                     ->send();
                 return;
             }
+
+            $this->startDate = $start->format('Y-m-d');
+            $this->endDate = $end->format('Y-m-d');
+            $this->tableFilters['date_range']['start_date'] = $this->startDate;
+            $this->tableFilters['date_range']['end_date'] = $this->endDate;
+            $this->tableFilters['date_range']['range'] = $range;
+
+            Session::put('daily_metrics_start_date', $this->startDate);
+            Session::put('daily_metrics_end_date', $this->endDate);
+            Session::put('daily_metrics_range', $range);
+
+            $this->resetTable();
         } catch (\Exception $e) {
-            Log::error("Failed to parse date range", [
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'range' => $range,
-                'error' => $e->getMessage(),
-            ]);
             Notification::make()
                 ->title('Error')
                 ->body('Invalid date format. Please use DD-MM-YYYY.')
                 ->danger()
                 ->send();
-            return;
         }
-
-        // Update state and filters
-        $this->startDate = $start->format('Y-m-d');
-        $this->endDate = $end->format('Y-m-d');
-        $this->tableFilters['date_range']['start_date'] = $this->startDate;
-        $this->tableFilters['date_range']['end_date'] = $this->endDate;
-        $this->tableFilters['date_range']['range'] = $range;
-
-        Session::put('daily_metrics_start_date', $this->startDate);
-        Session::put('daily_metrics_end_date', $this->endDate);
-        Session::put('daily_metrics_range', $range);
-
-        Log::info("Resetting table for date range", [
-            'start_date' => $this->startDate,
-            'end_date' => $this->endDate,
-            'range' => $range,
-        ]);
-        $this->resetTable();
-
-        Log::info("Table filters updated", [
-            'new_start_date' => $this->startDate,
-            'new_end_date' => $endDate,
-            'new_range' => $range,
-            'table_filters_after' => $this->tableFilters,
-        ]);
     }
 
     public function getTableRecordKey($record): string

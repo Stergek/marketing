@@ -3,14 +3,25 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "build:theme": "npx tailwindcss -i ./resources/css/filament-theme.css -o ./public/css/filament-theme.css --minify",
+         "watch:theme": "npx tailwindcss -i ./resources/css/filament-theme.css -o ./public/css/filament-theme.css --watch"
+        
     },
     "devDependencies": {
-        "@tailwindcss/vite": "^4.0.0",
+        "@tailwindcss/forms": "^0.5.10",
+        "@tailwindcss/typography": "^0.5.16",
+        "autoprefixer": "^10.4.21",
         "axios": "^1.8.2",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^1.2.0",
-        "tailwindcss": "^4.0.0",
+        "postcss": "^8.5.3",
+        "postcss-nesting": "^13.0.1",
+        "tailwindcss": "^3.4.17",
         "vite": "^6.2.4"
+    },
+    "dependencies": {
+        "filament": "^1.53.4"
     }
+    
 }

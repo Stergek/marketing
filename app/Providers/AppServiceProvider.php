@@ -28,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
              }
              Log::info("Query Time: {$query->time}ms", ['sql' => $query->sql, 'bindings' => $query->bindings]);
          }); */
+         \Livewire\Livewire::component('custom-dashboard-table', \App\Livewire\CustomDashboardTable::class);
+
      }
 
 }

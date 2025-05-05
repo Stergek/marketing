@@ -37,5 +37,6 @@ class DailyMetric extends Model
         'last_synced_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'date' => 'date', // Cast the 'date' column to a Carbon instance
     ];
 }
