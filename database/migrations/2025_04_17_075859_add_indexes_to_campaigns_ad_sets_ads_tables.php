@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -7,13 +6,6 @@ use Illuminate\Support\Facades\DB;
 
 class AddIndexesToCampaignsAdSetsAdsTables extends Migration
 {
-    /**
-     * Check if an index exists on a table for a given column.
-     *
-     * @param string $table
-     * @param string $column
-     * @return bool
-     */
     private function indexExists($table, $column)
     {
         $indexes = DB::select("SHOW INDEXES FROM `{$table}` WHERE Column_name = ?", [$column]);
@@ -22,7 +14,6 @@ class AddIndexesToCampaignsAdSetsAdsTables extends Migration
 
     public function up()
     {
-        // Campaigns table
         Schema::table('campaigns', function (Blueprint $table) {
             if (!$this->indexExists('campaigns', 'date')) {
                 $table->index('date', 'idx_campaigns_date');
@@ -33,7 +24,6 @@ class AddIndexesToCampaignsAdSetsAdsTables extends Migration
             }
         });
 
-        // Ad Sets table
         Schema::table('ad_sets', function (Blueprint $table) {
             if (!$this->indexExists('ad_sets', 'date')) {
                 $table->index('date', 'idx_ad_sets_date');
@@ -44,7 +34,6 @@ class AddIndexesToCampaignsAdSetsAdsTables extends Migration
             }
         });
 
-        // Ads table
         Schema::table('ads', function (Blueprint $table) {
             if (!$this->indexExists('ads', 'date')) {
                 $table->index('date', 'idx_ads_date');

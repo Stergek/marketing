@@ -1,12 +1,9 @@
 <?php
-// database/seeders/AdvertiserSeeder.php
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Advertiser;
 use App\Models\MetaAd;
-use App\Models\MetaAdHistory;
-use Carbon\Carbon;
 
 class AdvertiserSeeder extends Seeder
 {
@@ -31,19 +28,11 @@ class AdvertiserSeeder extends Seeder
                     'ad_snapshot_url' => "https://fake-ad-image.com/{$advertiser->page_id}/{$i}.jpg",
                     'creative_body' => "Shop our latest collection! Discount up to 20% off. Ad #{$i}",
                     'cta' => collect(['Shop Now', 'Learn More', 'Sign Up'])->random(),
-                    'start_date' => Carbon::today()->subDays(rand(1, 180)),
+                    'start_date' => now()->subDays(rand(1, 180)),
                     'active_duration' => rand(1, 180),
                     'media_type' => collect(['video', 'image'])->random(),
                     'impressions' => rand(1000, 100000),
                     'platforms' => json_encode(collect(['Facebook', 'Instagram', 'Messenger'])->random(rand(1, 3))->toArray()),
-                ]);
-            }
-
-            for ($day = 30; $day >= 0; $day--) {
-                MetaAdHistory::create([
-                    'advertiser_id' => $advertiser->id,
-                    'date' => Carbon::today()->subDays($day),
-                    'active_ads_count' => rand(max(5, $adCount - 5), min(40, $adCount + 5)),
                 ]);
             }
         }

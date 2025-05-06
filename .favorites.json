@@ -1,47 +1,29 @@
 [
     {
+        "type": "Directory",
+        "name": "c:\\xampp\\htdocs\\MetaMarketing\\app",
+        "parent_id": null,
+        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\app",
+        "workspaceRoot": null,
+        "workspacePath": null,
+        "id": "tFU3S5AQOW1agRJi"
+    },
+    {
+        "type": "Directory",
+        "name": "c:\\xampp\\htdocs\\MetaMarketing\\resources",
+        "parent_id": null,
+        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\resources",
+        "workspaceRoot": null,
+        "workspacePath": null,
+        "id": "CvzRZjYqElA18eUr"
+    },
+    {
         "type": "File",
         "name": "c:\\xampp\\htdocs\\MetaMarketing\\storage\\logs\\laravel.log",
         "parent_id": null,
         "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\storage\\logs\\laravel.log",
         "workspaceRoot": null,
         "workspacePath": null,
-        "id": "aDfXTQjIEFSZLyeO"
-    },
-    {
-        "type": "Directory",
-        "name": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Livewire",
-        "parent_id": null,
-        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Livewire",
-        "workspaceRoot": null,
-        "workspacePath": null,
-        "id": "hFMbfutrL4emAaSI"
-    },
-    {
-        "type": "Directory",
-        "name": "c:\\xampp\\htdocs\\MetaMarketing\\resources\\views",
-        "parent_id": null,
-        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\resources\\views",
-        "workspaceRoot": null,
-        "workspacePath": null,
-        "id": "eofczS01TG68RJUD"
-    },
-    {
-        "type": "Directory",
-        "name": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Filament",
-        "parent_id": null,
-        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Filament",
-        "workspaceRoot": null,
-        "workspacePath": null,
-        "id": "0raCzkyHq4l5TZDY"
-    },
-    {
-        "type": "Directory",
-        "name": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Models",
-        "parent_id": null,
-        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Models",
-        "workspaceRoot": null,
-        "workspacePath": null,
-        "id": "0t87c5SLWPikxorI"
+        "id": "ur23cM1qbzmR0GIZ"
     }
 ]

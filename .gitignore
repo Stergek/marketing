@@ -33,6 +33,7 @@
 /storage/*.key
 /storage/pail
 /vendor
+/keep
 .env
 .env.backup
 .env.production

@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\CustomDashboard;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Resources\AdvertiserResource;
 use App\Filament\Resources\ArtifactResource;
 use App\Filament\Widgets\CustomDashboardStats;
 use App\Filament\Widgets\KeyMetricsOverview;
@@ -60,8 +61,12 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            //IMPORTANT: did not add advertisers resources to here.
+            //IMPORTANT: did not add advertisers resources to here.
+            //IMPORTANT: did not add advertisers resources to here.
             ->resources([
                 ArtifactResource::class,
+                AdvertiserResource::class,
                 // Other resources
             ])
             ->databaseNotifications()

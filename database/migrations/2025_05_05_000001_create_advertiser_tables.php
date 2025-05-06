@@ -1,6 +1,4 @@
 <?php
-
-// database/migrations/2025_05_05_000001_create_advertiser_tables.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -31,19 +29,10 @@ class CreateAdvertiserTables extends Migration
             $table->json('platforms')->nullable();
             $table->timestamps();
         });
-
-        Schema::create('meta_ads_history', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('advertiser_id')->constrained()->onDelete('cascade');
-            $table->date('date');
-            $table->integer('active_ads_count');
-            $table->timestamps();
-        });
     }
 
     public function down()
     {
-        Schema::dropIfExists('meta_ads_history');
         Schema::dropIfExists('meta_ads');
         Schema::dropIfExists('advertisers');
     }
