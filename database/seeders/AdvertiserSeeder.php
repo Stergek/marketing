@@ -31,6 +31,7 @@ class AdvertiserSeeder extends Seeder
                     'start_date' => now()->subDays(rand(1, 180)),
                     'active_duration' => rand(1, 180),
                     'media_type' => collect(['video', 'image'])->random(),
+                    'type' => collect(['traffic', 'conversion'])->random(), // Add random type
                     'impressions' => rand(1000, 100000),
                     'platforms' => json_encode(collect(['Facebook', 'Instagram', 'Messenger'])->random(rand(1, 3))->toArray()),
                 ]);

@@ -46,6 +46,16 @@ class User extends Authenticatable
         ];
     }
 
+    public function userAdvertisers()
+    {
+        return $this->hasMany(UserAdvertiser::class);
+    }
+
+    public function advertisers()
+    {
+        return $this->belongsToMany(Advertiser::class, 'user_advertisers');
+    }
+
 
 }
 // class User extends Model

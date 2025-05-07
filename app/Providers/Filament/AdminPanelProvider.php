@@ -6,6 +6,7 @@ use App\Filament\Pages\CustomDashboard;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Resources\AdvertiserResource;
 use App\Filament\Resources\ArtifactResource;
+use App\Filament\Resources\GlobalAdvertiserResource;
 use App\Filament\Widgets\CustomDashboardStats;
 use App\Filament\Widgets\KeyMetricsOverview;
 use App\Filament\Widgets\TestMetricsOverview;
@@ -67,6 +68,7 @@ class AdminPanelProvider extends PanelProvider
             ->resources([
                 ArtifactResource::class,
                 AdvertiserResource::class,
+                GlobalAdvertiserResource::class,
                 // Other resources
             ])
             ->databaseNotifications()
