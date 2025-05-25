@@ -1,0 +1,162 @@
+Purpose of OfflineEcommerceScraper.php
+=====================================
+
+OfflineEcommerceScraper.php is a Laravel service class designed to scrape product data from pre-saved HTML files (MHTML and HTML) stored in the Laravel application's storage directory. It processes product listing and detail pages from the website https://defiletekstil.com/tr/toptan-bluz, extracting product information such as Title (including color), Price, Unit Price, Product Code, Product Definition, and Detail URL. The scraped data is exported to an Excel file for offline analysis. This class is specifically tailored for offline processing, relying on locally stored HTML files rather than fetching data online, ensuring faster execution and no dependency on internet connectivity.
+
+How It Works
+============
+
+1. **Initialization**:
+   - The class is located in `app/Services/OfflineEcommerceScraper.php` and belongs to the `App\Services` namespace.
+   - It initializes a Guzzle HTTP client for potential image downloads (currently disabled) and sets the base URL to `https://defiletekstil.com`.
+
+2. **Main Method: scrapeProducts($listingHtmlPath)**:
+   - Takes a path to a listing HTML file (e.g., `listing_full.mhtml` or `listing_1747514206_mhtml.html`) in `storage/app/`.
+   - Attempts to load the listing file from `storage/app/` using possible paths:
+     - The provided `$listingHtmlPath`.
+     - `listing_full.mhtml`.
+     - `listing_1747514206_mhtml.html`.
+   - Extracts HTML from MHTML files using `extractHtmlFromMhtml`, handling quoted-printable encoding and multipart boundaries.
+   - Parses the listing HTML to extract:
+     - Product URLs (via `a` tags in `.grid-cols-2 div[data-id]`).
+     - Titles with colors (e.g., "Gömlek Yaka Önü Düğme Detaylı Bluz - MORR") from `h2.product-name`.
+     - Unit Prices from `div.text-xs.font-normal.text-gray-600`.
+   - Falls back to JSON-LD for URLs if DOM parsing fails.
+   - Logs parsing steps and errors to `storage/logs/laravel.log`.
+
+3. **Detail Page Processing**:
+   - Finds all `detail_*.html` files in `storage/app/` matching the pattern `detail_<md5>_<timestamp>.html`.
+   - Matches each file to a product URL using MD5 hashes.
+   - Parses each detail HTML file to extract:
+     - Price (`div.text-gray-600.font-normal.text-base` or JSON-LD).
+     - Product Code (`div.categories-detail span:nth-child(2)`).
+     - Product Definition (`div.tab-content p`).
+     - Image URLs (logged but not downloaded).
+   - Uses listing page Title and Unit Price if available, falling back to detail page Title if necessary.
+   - Skips image downloads, logging "Skipping image download for card XX".
+   - Supports up to 300 products (configurable via `$maxProducts`).
+
+4. **Excel Export**:
+   - Calls `exportToExcel` to save scraped data to `storage/app/exports/products_export_<timestamp>.xlsx`.
+   - Each row includes: Title, Price, Unit Price, Product Code, Product Definition, Detail URL (no Image URLs).
+   - Relies on `App\Exports\ProductsExport` for Excel formatting.
+
+5. **Error Handling**:
+   - Logs errors for missing files, parsing failures, or empty HTML.
+   - Saves debug samples to `storage/app/debug_sample_*.mhtml` if listing HTML parsing fails.
+   - Uses placeholder URLs (`unknown_<md5>`) for unmatched detail files.
+   - Provides relaxed validation (e.g., placeholder titles like `Unknown_XX`).
+
+Relation to Other Files
+=======================
+
+1. **ProductsExport.php**:
+   - Location: `app/Exports/ProductsExport.php`
+   - Purpose: Defines the Excel export format, mapping product data (Title, Price, Unit Price, Product Code, Product Definition, Detail URL) to columns.
+   - Dependency: Must exist and be configured to exclude `image_urls` from the export.
+   - Namespace: `App\Exports`
+   - Used in: `exportToExcel` method via `Excel::store(new ProductsExport($products), ...)`.
+
+2. **Laravel Storage**:
+   - Location: `storage/app/`
+   - Purpose: Stores input HTML files and output Excel files.
+   - Required Files:
+     - Listing HTML: `listing_full.mhtml` or `listing_1747514206_mhtml.html` (at least one, in `storage/app/`).
+     - Detail HTML: Multiple `detail_<md5>_<timestamp>.html` files (e.g., 164 files for 164 products, in `storage/app/`).
+     - Output: Excel files are saved to `storage/app/exports/` (created if not exists).
+     - Debug: Debug samples (e.g., `debug_sample_listing_full.mhtml`) are saved to `storage/app/`.
+   - Note: Ensure `storage/app/` and `storage/app/exports/` have write permissions (`icacls "path" /grant Everyone:F`).
+
+3. **Log File**:
+   - Location: `storage/logs/laravel.log`
+   - Purpose: Records scraping progress, errors, and debug information (e.g., file loading, parsing issues, extracted data).
+   - Used by: Laravel's `Log` facade for all logging.
+
+4. **Vendor Dependencies**:
+   - Packages: `symfony/dom-crawler`, `guzzlehttp/guzzle`, `spatie/browsershot`, `maatwebsite/excel`.
+   - Location: `vendor/`
+   - Purpose: Provide DOM parsing, HTTP requests (unused in offline mode), browser rendering (unused), and Excel export functionality.
+   - Installed via: `composer.json` and `composer install`.
+
+Where Related Files Should Exist
+===============================
+
+For `OfflineEcommerceScraper.php` to function correctly, ensure the following files are in place:
+
+1. **OfflineEcommerceScraper.php**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\app\Services\OfflineEcommerceScraper.php`
+   - Purpose: Main scraper logic.
+
+2. **ProductsExport.php**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\app\Exports\ProductsExport.php`
+   - Purpose: Excel export formatting.
+
+3. **Listing HTML File**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\app\listing_full.mhtml` or `C:\xampp\htdocs\MetaMarketing\storage\app\listing_1747514206_mhtml.html`
+   - Purpose: Provides product URLs, Titles with colors, and Unit Prices.
+   - Note: At least one is required for full functionality (Titles and Unit Prices). If missing, Titles may lack colors and Unit Prices will be null.
+
+4. **Detail HTML Files**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\app\detail_<md5>_<timestamp>.html` (e.g., 164 files)
+   - Purpose: Provide Price, Product Code, Product Definition, and Detail URL.
+   - Naming: Must match `detail_<md5>_<timestamp>.html`, where `<md5>` is the MD5 hash of the product URL.
+
+5. **Excel Output Directory**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\app\exports\`
+   - Purpose: Stores output Excel files (e.g., `products_export_1747516860.xlsx`).
+   - Note: Created automatically if not exists, but ensure write permissions.
+
+6. **Log File**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\logs\laravel.log`
+   - Purpose: Logs execution details for debugging.
+
+Example Directory Structure
+===========================
+
+```
+C:\xampp\htdocs\MetaMarketing\
+├── app\
+│   ├── Exports\
+│   │   └── ProductsExport.php
+│   └── Services\
+│       └── OfflineEcommerceScraper.php
+├── storage\
+│   ├── app\
+│   │   ├── listing_full.mhtml
+│   │   ├── listing_1747514206_mhtml.html (optional)
+│   │   ├── detail_<md5>_1747514206.html (164 files)
+│   │   ├── debug_sample_listing_full.mhtml (if parsing fails)
+│   │   └── exports\
+│   │       └── products_export_1747516860.xlsx
+│   └── logs\
+│       └── laravel.log
+```
+
+Usage Example
+=============
+
+```bash
+cd C:\xampp\htdocs\MetaMarketing
+php artisan tinker
+```
+
+```php
+use App\Services\OfflineEcommerceScraper;
+$scraper = new OfflineEcommerceScraper();
+$result = $scraper->scrapeProducts('listing_full.mhtml');
+$filePath = $scraper->exportToExcel($result['products']);
+echo $filePath; // Outputs: C:\xampp\htdocs\MetaMarketing\storage\app\exports\products_export_<timestamp>.xlsx
+```
+
+Notes
+=====
+
+- **Performance**: Parsing 164 detail HTML files takes ~16-80 seconds (disk I/O only).
+- **Environment**: Tested with Laravel 12, PHP 8.2+, Windows, XAMPP, as of May 18, 2025.
+- **Troubleshooting**:
+  - Check `storage/logs/laravel.log` for errors (e.g., "Listing HTML file not found", "Failed to parse listing HTML").
+  - Verify file existence with `dir C:\xampp\htdocs\MetaMarketing\storage\app\*.mhtml` and `dir C:\xampp\htdocs\MetaMarketing\storage\app\*.html | findstr "detail_"`.
+  - Ensure permissions with `icacls "C:\xampp\htdocs\MetaMarketing\storage\app" /grant Everyone:F`.
+- **Limitations**: Requires pre-saved HTML files. If listing HTML is missing or unparseable, Titles may lack colors and Unit Prices will be null.
+
+For support, check logs and verify file locations. If issues persist, share log entries and directory listing.

@@ -1,0 +1,135 @@
+Purpose of maatwebsite/excel
+===========================
+
+maatwebsite/excel is a Laravel package for importing and exporting Excel and CSV files. In both EcommerceScraper.php and OfflineEcommerceScraper.php, it exports scraped product data (Title, Price, Unit Price, Product Code, Product Definition, Detail URL, and Image URLs for online) to Excel files via ProductsExport.php, enabling data analysis in spreadsheets. It provides a simple interface for formatting data into rows and columns, handling large datasets efficiently.
+
+How It Works
+============
+
+1. **Initialization**:
+   - Installed via Composer as `maatwebsite/excel`.
+   - Located in `vendor/maatwebsite/excel/`.
+   - Integrates with Laravel via `Excel` facade.
+
+2. **Usage in Scrapers**:
+   - Called in `exportToExcel` method of both scrapers:
+     ```php
+     Excel::store(new ProductsExport($products), "exports/products_export_{$timestamp}.xlsx", 'local');
+     ```
+   - Takes a `ProductsExport` instance (implements `FromCollection`, `WithHeadings`, `WithMapping`).
+   - Processes product data:
+     - Offline: 6 columns (excludes Image URLs).
+     - Online: 7 columns (includes Image URLs).
+   - Saves to `storage/app/exports/products_export_<timestamp>.xlsx`.
+   - Performance: ~1-5 seconds for 164 products (7 columns, ~1-10 MB file).
+
+3. **Features**:
+   - Collection-based export: Converts product arrays to rows.
+   - Custom headings: Defined in `ProductsExport.php` (e.g., `['Title', 'Price', ...]`).
+   - Mapping: Formats data (e.g., joins `image_urls` into a comma-separated string).
+   - Disk storage: Uses Laravel’s `local` disk (`storage/app/`).
+
+4. **Error Handling**:
+   - Throws exceptions for invalid data or disk issues, logged to `storage/logs/laravel.log`.
+   - Example: `Failed to export products to Excel: ...`.
+
+Relation to Other Files
+=======================
+
+1. **ProductsExport.php**:
+   - Location: `app/Exports/ProductsExport.php`
+   - Purpose: Defines Excel structure (collection, headings, mapping).
+   - Dependency: Instantiated by scrapers, passed to `Excel::store`.
+
+2. **EcommerceScraper.php**:
+   - Location: `app/Services/EcommerceScraper.php`
+   - Purpose: Exports 7-column data with Image URLs.
+   - Dependency: Uses `Maatwebsite\Excel\Facades\Excel`.
+
+3. **OfflineEcommerceScraper.php**:
+   - Location: `app/Services/OfflineEcommerceScraper.php`
+   - Purpose: Exports 6-column data without Image URLs.
+   - Dependency: Uses `Maatwebsite\Excel\Facades\Excel`.
+
+4. **Storage**:
+   - Location: `storage/app/exports/`
+   - Purpose: Stores Excel files (e.g., `products_export_1747516860.xlsx`).
+
+5. **Log File**:
+   - Location: `storage/logs/laravel.log`
+   - Purpose: Logs export errors.
+
+Where It Should Exist
+=====================
+
+1. **Composer Package**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\vendor\maatwebsite\excel\`
+   - Purpose: Contains package source code.
+   - Installed via: `composer require maatwebsite/excel`.
+
+2. **Laravel Configuration**:
+   - Path: `config/excel.php` (optional, auto-published).
+   - Purpose: Configures export settings (e.g., disk, writer type).
+   - Note: Defaults work for `local` disk.
+
+Example Directory Structure
+===========================
+
+```
+C:\xampp\htdocs\MetaMarketing\
+├── app\
+│   ├── Exports\
+│   │   └── ProductsExport.php
+│   └── Services\
+│       ├── EcommerceScraper.php
+│       └── OfflineEcommerceScraper.php
+├── vendor\
+│   └── maatwebsite\
+│       └── excel\
+│           ├── src\
+│           └── ...
+├── storage\
+│   ├── app\
+│   │   ├── exports\
+│   │   │   └── products_export_1747516860.xlsx
+│   │   └── ...
+│   └── logs\
+│       └── laravel.log
+```
+
+Usage Example
+=============
+
+In `EcommerceScraper.php` or `OfflineEcommerceScraper.php`:
+```php
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductsExport;
+$products = [...]; // Array of product data
+$filePath = "exports/products_export_" . time() . ".xlsx";
+Excel::store(new ProductsExport($products), $filePath, 'local');
+// Returns: C:\xampp\htdocs\MetaMarketing\storage\app\exports\products_export_<timestamp>.xlsx
+```
+
+Installation
+============
+
+```bash
+cd C:\xampp\htdocs\MetaMarketing
+composer require maatwebsite/excel
+php artisan vendor:publish --provider="Maatwebsite\Excel\ExcelServiceProvider"
+```
+
+Notes
+=====
+
+- **Performance**: Fast (~1-5 seconds for 164 rows), negligible compared to scraping.
+- **Environment**: Tested with Laravel 12, PHP 8.2+, Windows, XAMPP, May 18, 2025.
+- **Troubleshooting**:
+  - Check `storage/logs/laravel.log` for errors (e.g., `Failed to export ...`).
+  - Verify package: `composer show maatwebsite/excel`.
+  - Ensure permissions: `icacls "C:\xampp\htdocs\MetaMarketing\storage\app\exports" /grant Everyone:F`.
+  - Test: `php artisan tinker`, `Excel::store(new \App\Exports\ProductsExport([]), 'test.xlsx')`.
+- **Limitations**: Requires `ProductsExport.php` for custom formatting. Large datasets (>10,000 rows) may need chunking.
+- **Alternatives**: `phpoffice/phpspreadsheet` (lower-level, more manual).
+
+For support, share logs and verify installation.

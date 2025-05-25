@@ -1,0 +1,129 @@
+Purpose of guzzlehttp/guzzle
+===========================
+
+guzzlehttp/guzzle is a PHP HTTP client for making HTTP requests to fetch web content or download files. In EcommerceScraper.php, it downloads product images from URLs (e.g., https://myikas.com/.../image1.webp) to local storage (`storage/app/images/<product_code>_<color>/`). It is not used by OfflineEcommerceScraper.php, which skips image downloads.
+
+How It Works
+============
+
+1. **Initialization**:
+   - Installed via Composer as `guzzlehttp/guzzle`.
+   - Located in `vendor/guzzlehttp/guzzle/`.
+   - Instantiated in `EcommerceScraper.php` constructor:
+     ```php
+     $this->client = new Client([
+         'timeout' => 10,
+         'headers' => [
+             'User-Agent' => 'Mozilla/5.0 ...',
+         ],
+     ]);
+     ```
+
+2. **Usage in EcommerceScraper.php**:
+   - Called in `downloadImages` to fetch images:
+     ```php
+     $response = $this->client->get($url, ['timeout' => 5]);
+     $contentType = $response->getHeaderLine('Content-Type');
+     $extension = $this->mimeToExtension[$contentType] ?? '.webp';
+     Storage::put($filePath, $response->getBody());
+     ```
+   - Downloads 5-10 images per product (~100-500 KB each).
+   - Saves to `storage/app/images/<product_code>_<color>/image_X.<ext>`.
+   - Performance: ~0.03-0.1 seconds per image, ~0.46-0.95 seconds per product (7 images).
+   - For 164 products: ~75-156 seconds (~1.3-2.6 minutes).
+
+3. **Features**:
+   - Configurable timeouts (5 seconds per image).
+   - Custom headers (e.g., User-Agent to mimic browsers).
+   - Streamed responses for efficient file downloads.
+
+4. **Error Handling**:
+   - Catches `RequestException` for failed downloads, logged to `storage/logs/laravel.log`.
+   - Example: `Failed to download image ...: Connection timed out`.
+
+Relation to Other Files
+=======================
+
+1. **EcommerceScraper.php**:
+   - Location: `app/Services/EcommerceScraper.php`
+   - Purpose: Downloads images for each product.
+   - Dependency: Uses `GuzzleHttp\Client`.
+
+2. **OfflineEcommerceScraper.php**:
+   - Location: `app/Services/OfflineEcommerceScraper.php`
+   - Purpose: Does not download images, no Guzzle usage.
+   - Note: No dependency.
+
+3. **Storage**:
+   - Location: `storage/app/images/`
+   - Purpose: Stores downloaded images (e.g., `images/DF1090_MORR/image_1.webp`).
+
+4. **Log File**:
+   - Location: `storage/logs/laravel.log`
+   - Purpose: Logs download errors.
+
+Where It Should Exist
+=====================
+
+1. **Composer Package**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\vendor\guzzlehttp\guzzle\`
+   - Purpose: Contains package source code.
+   - Installed via: `composer require guzzlehttp/guzzle`.
+
+Example Directory Structure
+===========================
+
+```
+C:\xampp\htdocs\MetaMarketing\
+├── app\
+│   └── Services\
+│       ├── EcommerceScraper.php
+│       └── OfflineEcommerceScraper.php
+├── vendor\
+│   └── guzzlehttp\
+│       └── guzzle\
+│           ├── src\
+│           └── ...
+├── storage\
+│   ├── app\
+│   │   ├── images\
+│   │   │   └── DF1090_MORR\
+│   │   │       ├── image_1.webp
+│   │   │       └── ...
+│   │   └── ...
+│   └── logs\
+│       └── laravel.log
+```
+
+Usage Example
+=============
+
+In `EcommerceScraper.php`:
+```php
+use GuzzleHttp\Client;
+$client = new Client(['timeout' => 5]);
+$response = $client->get('https://myikas.com/.../image1.webp');
+file_put_contents('image.webp', $response->getBody());
+```
+
+Installation
+============
+
+```bash
+cd C:\xampp\htdocs\MetaMarketing
+composer require guzzlehttp/guzzle
+```
+
+Notes
+=====
+
+- **Performance**: Fast (~0.03-0.1 seconds per image), ~15% of EcommerceScraper.php runtime.
+- **Environment**: Tested with Laravel 12, PHP 8.2+, Windows, XAMPP, May 18, 2025.
+- **Troubleshooting**:
+  - Check `storage/logs/laravel.log` for errors (e.g., `Failed to download ...`).
+  - Verify package: `composer show guzzlehttp/guzzle`.
+  - Test: `php artisan tinker`, `use GuzzleHttp\Client; $c = new Client(); $r = $c->get('https://google.com'); echo $r->getBody();`.
+- **Limitations**: Sequential downloads, no parallel requests in code.
+- **Alternatives**: `curl`, `file_get_contents` (less robust).
+
+For support, share logs and verify installation.

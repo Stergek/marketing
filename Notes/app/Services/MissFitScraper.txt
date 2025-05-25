@@ -1,0 +1,182 @@
+Purpose of MissfitScraper.php
+============================
+
+MissfitScraper.php is a Laravel service class designed to scrape product data from the website https://missfit.com.tr/body-23/ by processing a pre-saved MHTML listing file (misfit_listing.mhtml) and fetching product detail pages online. It extracts product information such as Title, Price, Product Code, Image URLs, and Detail URL from detail pages, downloads product images to local storage, and exports the data to an Excel file for analysis. This class is tailored for online scraping, relying on a local MHTML file for product listing links and real-time fetching of detail pages via Browsershot, making it suitable for scenarios requiring up-to-date data and image downloads. It is adapted from EcommerceScraper.php to handle missfit.com.tr’s structure, fetching all data from detail pages.
+
+How It Works
+============
+
+1. **Initialization**
+   The class is located in `app/Services/MissfitScraper.php` and belongs to the `App\Services` namespace.
+   It initializes a Guzzle HTTP client for image downloads and sets the base URL to `https://missfit.com.tr`.
+
+2. **Main Method: scrapeProducts($mhtmlPath)**:
+   - Takes a path to a listing MHTML file (e.g., `storage/app/misfit_listing.mhtml`) in `storage/app/`.
+   - Loads the MHTML file, extracts HTML using `extractHtmlFromMhtml`, handling quoted-printable encoding and multipart boundaries.
+   - Parses the listing HTML to extract:
+     - Product detail URLs (via `a` tags in `.productListBottom`).
+   - Limits processing to 300 products (`$maxProducts`).
+   - Logs parsing steps and errors to `storage/logs/laravel.log`.
+
+3. **Detail Page Processing**:
+   - Fetches each product detail page online using Browsershot, which renders JavaScript for dynamic content:
+     ```php
+     $html = Browsershot::url($detailUrl)->waitUntilNetworkIdle()->waitForSelector('ul.thumbelina li img', ['timeout' => 15000])->timeout(60)->bodyHtml();
+     ```
+   - Saves fetched HTML to `storage/app/detail_<md5>_<timestamp>.html` for debugging.
+   - Parses detail HTML to extract:
+     - Title (`div.productName h1`).
+     - Price (`span#ContentPlaceHolder1_lblPrice.rpt-price`, cleaned to float).
+     - Product Code (`span#ContentPlaceHolder1_lblProductCode`).
+     - Image URLs (`ul.thumbelina li img[src]`, converted to absolute URLs).
+   - Downloads images to `storage/app/images/<product_code>_<product_title>/` using `downloadImages`.
+   - Adds a 1-second delay between requests (`sleep(1)`) to avoid overwhelming the server.
+   - Supports up to 300 products.
+
+4. **Image Downloading**:
+   - Downloads images to folders named `<product_code>_<product_title>` (e.g., `1903_Korsajli_Beyaz_Body`).
+   - Sanitizes folder names by:
+     - Converting Turkish characters to ASCII: Ç→C, Ğ→G, İ→I, Ö→O, Ş→S, Ü→U.
+     - Allowing only A-Z, a-z, 0-9, and underscores, replacing other characters with underscores.
+     - Removing multiple consecutive underscores and trimming leading/trailing underscores.
+   - Ensures compatibility with Windows filesystems (XAMPP) by avoiding special characters.
+   - Skips downloads if the folder exists or if image URLs, product code, or title are missing.
+   - Supports `.webp`, `.jpg`, `.png`, `.gif` formats based on Content-Type.
+
+5. **Excel Export**:
+   - Calls `exportToExcel` to save scraped data to `storage/app/exports/products_export_<timestamp>.xlsx`.
+   - Each row includes: Title, Price, Product Code, Image URLs, Detail URL.
+   - Relies on `App\Exports\MissfitExport` for Excel formatting.
+
+6. **Error Handling**:
+   - Logs errors for missing MHTML files, empty files, parsing failures, or network issues.
+   - Saves debug samples to `storage/app/debug_sample_*.mhtml` if listing HTML parsing fails.
+   - Skips products missing critical data (Title, Product Code, Image URLs) and logs warnings for missing Price.
+   - Uses relaxed validation for optional fields (e.g., Price).
+
+Relation to Other Files
+=======================
+
+1. **MissfitExport.php**:
+   - Location: `app/Exports/MissfitExport.php`
+   - Purpose: Defines the Excel export format, mapping product data (Title, Price, Product Code, Image URLs, Detail URL) to columns.
+   - Dependency: Must exist and be configured to include `image_urls` in the export.
+   - Namespace: `App\Exports`
+   - Used in: `exportToExcel` method via `Excel::store(new MissfitExport($products), ...)`.
+
+2. **Laravel Storage**:
+   - Location: `storage/app/`
+   - Purpose: Stores input MHTML file, debug HTML files, downloaded images, and output Excel files.
+   - Required Files:
+     - Listing MHTML: `misfit_listing.mhtml` in `storage/app/`.
+     - Debug HTML: Saved as `detail_<md5>_<timestamp>.html` and `listing_<timestamp>_mhtml.html` in `storage/app/`.
+     - Images: Saved to `storage/app/images/<product_code>_<product_title>/` (e.g., `images/1903_Korsajli_Beyaz_Body/`).
+     - Output: Excel files saved to `storage/app/exports/` (created if not exists).
+     - Debug: Debug samples (e.g., `debug_sample_misfit_listing.mhtml`) saved to `storage/app/`.
+   - Note: Ensure `storage/app/`, `storage/app/images/`, and `storage/app/exports/` have write permissions (`icacls "path" /grant Everyone:F`).
+
+3. **Log File**:
+   - Location: `storage/logs/laravel.log`
+   - Purpose: Records scraping progress, errors, and debug information (e.g., file loading, parsing issues, image downloads).
+   - Used by: Laravel's `Log` facade for all logging.
+
+4. **Vendor Dependencies**:
+   - Packages: `symfony/dom-crawler`, `guzzlehttp/guzzle`, `spatie/browsershot`, `maatwebsite/excel`.
+   - Location: `vendor/`
+   - Purpose: Provide DOM parsing, HTTP requests (for images), browser rendering (for detail pages), and Excel export functionality.
+   - Installed via: `composer.json` and `composer install`.
+   - Additional: `puppeteer` (via npm) for Browsershot.
+
+Where Related Files Should Exist
+===============================
+
+For `MissfitScraper.php` to function correctly, ensure the following files are in place:
+
+1. **MissfitScraper.php**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\app\Services\MissfitScraper.php`
+   - Purpose: Main scraper logic for online scraping.
+
+2. **MissfitExport.php**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\app\Exports\MissfitExport.php`
+   - Purpose: Excel export formatting, including Image URLs.
+
+3. **Listing MHTML File**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\app\misfit_listing.mhtml`
+   - Purpose: Provides product detail URLs.
+   - Note: Required for operation. If missing, no products will be scraped.
+
+4. **Image and Debug Directories**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\app\images\` and `C:\xampp\htdocs\MetaMarketing\storage\app\`
+   - Purpose: Stores downloaded images (e.g., `images/1903_Korsajli_Beyaz_Body/image_1.jpg`) and debug HTML files (e.g., `detail_<md5>_<timestamp>.html`).
+   - Note: Created automatically, but ensure write permissions.
+
+5. **Excel Output Directory**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\app\exports\`
+   - Purpose: Stores output Excel files (e.g., `products_export_<timestamp>.xlsx`).
+   - Note: Created automatically if not exists, but ensure write permissions.
+
+6. **Log File**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\logs\laravel.log`
+   - Purpose: Logs execution details for debugging.
+
+Example Directory Structure
+===========================
+
+```
+C:\xampp\htdocs\MetaMarketing\
+├── app\
+│   ├── Exports\
+│   │   └── MissfitExport.php
+│   └── Services\
+│       ├── MissfitScraper.php
+│       ├── EcommerceScraper.php
+│       └── OfflineEcommerceScraper.php
+├── storage\
+│   ├── app\
+│   │   ├── misfit_listing.mhtml
+│   │   ├── detail_<md5>_<timestamp>.html (debug files)
+│   │   ├── debug_sample_misfit_listing.mhtml (if parsing fails)
+│   │   ├── images\
+│   │   │   └── 1903_Korsajli_Beyaz_Body\
+│   │   │       ├── image_1.jpg
+│   │   │       └── ...
+│   │   └── exports\
+│   │       └── products_export_<timestamp>.xlsx
+│   └── logs\
+│       └── laravel.log
+```
+
+Usage Example
+=============
+
+```bash
+cd C:\xampp\htdocs\MetaMarketing
+php artisan tinker
+```
+
+```php
+use App\Services\MissfitScraper;
+$scraper = new MissfitScraper();
+$result = $scraper->scrapeProducts('misfit_listing.mhtml');
+$filePath = $scraper->exportToExcel($result['products']);
+echo $filePath; // Outputs: C:\xampp\htdocs\MetaMarketing\storage\app\exports\products_export_<timestamp>.xlsx
+```
+
+Notes
+=====
+
+- **Performance**: Scraping 164 products takes ~436-1,107 seconds (~7.3-18.5 minutes) due to online fetching (1-second delay per detail page) and image downloads.
+- **Environment**: Tested with Laravel 12, PHP 8.2+, Windows, XAMPP, as of May 22, 2025.
+- **Troubleshooting**:
+  - Check `storage/logs/laravel.log` for errors (e.g., "MHTML file not found", "Failed to fetch detail page").
+  - Verify MHTML file with `dir C:\xampp\htdocs\MetaMarketing\storage\app\misfit_listing.mhtml`.
+  - Ensure internet connectivity for detail page fetching.
+  - Ensure permissions with `icacls "C:\xampp\htdocs\MetaMarketing\storage\app" /grant Everyone:F`.
+  - Verify dependencies: `composer show symfony/dom-crawler guzzlehttp/guzzle spatie/browsershot maatwebsite/excel`, `npm list puppeteer`.
+- **Limitations**: Requires a valid MHTML file (misfit_listing.mhtml) and internet access. Detail page fetching may fail if the website is down or blocks requests. Image downloads increase execution time.
+- **Comparison with EcommerceScraper.php**:
+  - `MissfitScraper.php`: Fetches all data (Title, Price, Product Code, Image URLs) from detail pages, uses `<product_code>_<product_title>` folders with Turkish character transliteration.
+  - `EcommerceScraper.php`: Fetches Title and Unit Price from product cards, other data from detail pages, uses `<product_code>_<color>` folders.
+  - Both use Browsershot, Guzzle, and Excel export, with similar performance.
+
+For support, check logs and verify file locations. If issues persist, share log entries, directory listing, and test results.

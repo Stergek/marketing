@@ -1,0 +1,256 @@
+Purpose of ProductsExport.php
+============================
+
+ProductsExport.php is a Laravel export class designed to format and export product data scraped from https://defiletekstil.com/tr/toptan-bluz into an Excel file. It is used by both EcommerceScraper.php (online scraper) and OfflineEcommerceScraper.php (offline scraper) to generate Excel files containing product details such as Title, Price, Unit Price, Product Code, Product Definition, and Detail URL, with optional Image URLs for the online scraper. This class leverages the maatwebsite/excel package to create structured Excel files, enabling easy analysis of scraped data. It ensures consistent output formatting and supports conditional inclusion of columns based on the scraper type.
+
+How It Works
+============
+
+1. **Initialization**:
+   - The class is located in `app/Exports/ProductsExport.php` and belongs to the `App\Exports` namespace.
+   - It implements the `Maatwebsite\Excel\Concerns\FromCollection` interface (and optionally `WithHeadings`, `WithMapping`) to define the data collection, column headers, and data mapping for Excel export.
+   - It is instantiated with an array of product data from either `EcommerceScraper.php` or `OfflineEcommerceScraper.php`.
+
+2. **Data Input**:
+   - Receives an array of product data, where each product is an associative array with keys:
+     - `title`: Product name with color (e.g., "Gömlek Yaka Önü Düğme Detaylı Bluz - MORR").
+     - `price`: Total price (e.g., 1452).
+     - `unit_price`: Price per unit (e.g., 242).
+     - `product_code`: Product identifier (e.g., "DF1090").
+     - `product_definition`: Description (e.g., "Birim Fiyatı :242TL ...").
+     - `detail_url`: Product page URL (e.g., "https://defiletekstil.com/tr/gomlek-yaka-onu-dugme-detayli-bluz?RENK=MORR").
+     - `image_urls`: Array of image URLs (e.g., ["https://myikas.com/.../image1.webp", ...]), included only by `EcommerceScraper.php`.
+   - Example product data:
+     ```php
+     [
+         'title' => 'Gömlek Yaka Önü Düğme Detaylı Bluz - MORR',
+         'price' => 1452,
+         'unit_price' => 242,
+         'product_code' => 'DF1090',
+         'product_definition' => 'Birim Fiyatı :242TL ...',
+         'image_urls' => ['https://myikas.com/.../image1.webp', ...], // Optional
+         'detail_url' => 'https://defiletekstil.com/tr/gomlek-yaka-onu-dugme-detayli-bluz?RENK=MORR'
+     ]
+     ```
+
+3. **Excel Formatting**:
+   - **Collection**: Converts the product array into a Laravel Collection for processing.
+   - **Headings**: Defines column headers, typically:
+     - For `EcommerceScraper.php`: ["Title", "Price", "Unit Price", "Product Code", "Product Definition", "Image URLs", "Detail URL"].
+     - For `OfflineEcommerceScraper.php`: ["Title", "Price", "Unit Price", "Product Code", "Product Definition", "Detail URL"] (excludes "Image URLs").
+   - **Mapping**: Maps each product array to a row, formatting data as needed:
+     - Joins `image_urls` into a comma-separated string (e.g., "https://myikas.com/.../image1.webp,https://myikas.com/.../image2.webp") for `EcommerceScraper.php`.
+     - Handles null values (e.g., `price` or `unit_price` as empty strings).
+   - **Output**: Saves the Excel file to `storage/app/exports/products_export_<timestamp>.xlsx` via the `Excel::store` method.
+
+4. **Conditional Logic**:
+   - Detects the presence of `image_urls` in the product data to include or exclude the "Image URLs" column.
+   - May use a constructor parameter or configuration to toggle columns based on the scraper (online vs. offline).
+   - Ensures compatibility with both scrapers by dynamically adjusting headers and mappings.
+
+5. **Error Handling**:
+   - Relies on `maatwebsite/excel` to handle export errors, logging failures to `storage/logs/laravel.log`.
+   - Validates input data to ensure required fields (`title`, `detail_url`) are present, logging warnings for missing optional fields (e.g., `price`).
+
+Relation to Other Files
+=======================
+
+1. **EcommerceScraper.php**:
+   - Location: `app/Services/EcommerceScraper.php`
+   - Purpose: Online scraper that fetches product data, including Image URLs, and passes it to `ProductsExport.php` for Excel export.
+   - Dependency: Calls `exportToExcel` to generate Excel files with Image URLs included.
+   - Usage: `Excel::store(new ProductsExport($products), $filePath, 'local')`
+   - Note: Expects `image_urls` in the product data.
+
+2. **OfflineEcommerceScraper.php**:
+   - Location: `app/Services/OfflineEcommerceScraper.php`
+   - Purpose: Offline scraper that processes pre-saved HTML files, excluding Image URLs, and passes data to `ProductsExport.php` for Excel export.
+   - Dependency: Calls `exportToExcel` to generate Excel files without Image URLs.
+   - Usage: `Excel::store(new ProductsExport($products), $filePath, 'local')`
+   - Note: Omits `image_urls` from product data.
+
+3. **Laravel Storage**:
+   - Location: `storage/app/`
+   - Purpose: Stores the output Excel files generated by `ProductsExport.php`.
+   - Required Directory:
+     - Output: Excel files saved to `storage/app/exports/` (e.g., `products_export_1747516860.xlsx`).
+   - Note: Ensure `storage/app/exports/` has write permissions (`icacls "path" /grant Everyone:F`).
+
+4. **Log File**:
+   - Location: `storage/logs/laravel.log`
+   - Purpose: Records export errors or warnings (e.g., "Failed to export products to Excel").
+   - Used by: Laravel's `Log` facade, called by scrapers during export.
+
+5. **Vendor Dependency**:
+   - Package: `maatwebsite/excel`
+   - Location: `vendor/`
+   - Purpose: Provides Excel export functionality via Laravel Excel.
+   - Installed via: `composer.json` and `composer install`.
+
+Where Related Files Should Exist
+===============================
+
+For `ProductsExport.php` to function correctly, ensure the following files are in place:
+
+1. **ProductsExport.php**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\app\Exports\ProductsExport.php`
+   - Purpose: Defines Excel export logic and formatting.
+
+2. **EcommerceScraper.php**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\app\Services\EcommerceScraper.php`
+   - Purpose: Provides product data with Image URLs for online scraping.
+
+3. **OfflineEcommerceScraper.php**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\app\Services\OfflineEcommerceScraper.php`
+   - Purpose: Provides product data without Image URLs for offline scraping.
+
+4. **Excel Output Directory**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\app\exports\`
+   - Purpose: Stores output Excel files (e.g., `products_export_1747516860.xlsx`).
+   - Note: Created automatically if not exists, but ensure write permissions.
+
+5. **Log File**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\storage\logs\laravel.log`
+   - Purpose: Logs export errors for debugging.
+
+Example Directory Structure
+===========================
+
+```
+C:\xampp\htdocs\MetaMarketing\
+├── app\
+│   ├── Exports\
+│   │   └── ProductsExport.php
+│   └── Services\
+│       ├── EcommerceScraper.php
+│       └── OfflineEcommerceScraper.php
+├── storage\
+│   ├── app\
+│   │   ├── listing_full.mhtml
+│   │   ├── listing_1747514206_mhtml.html (optional)
+│   │   ├── detail_<md5>_<timestamp>.html (for offline scraper)
+│   │   ├── debug_sample_listing_full.mhtml (if parsing fails)
+│   │   ├── images\
+│   │   │   └── DF1090_MORR\
+│   │   │       ├── image_1.webp
+│   │   │       └── ...
+│   │   └── exports\
+│   │       └── products_export_1747516860.xlsx
+│   └── logs\
+│       └── laravel.log
+```
+
+Example Implementation
+=====================
+
+A typical `ProductsExport.php` might look like:
+
+```php
+<?php
+
+namespace App\Exports;
+
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Illuminate\Support\Collection;
+
+class ProductsExport implements FromCollection, WithHeadings, WithMapping
+{
+    protected $products;
+    protected $includeImageUrls;
+
+    public function __construct(array $products)
+    {
+        $this->products = $products;
+        // Detect if image_urls is present in any product
+        $this->includeImageUrls = !empty($products) && isset($products[0]['image_urls']);
+    }
+
+    public function collection()
+    {
+        return new Collection($this->products);
+    }
+
+    public function headings(): array
+    {
+        $headings = [
+            'Title',
+            'Price',
+            'Unit Price',
+            'Product Code',
+            'Product Definition',
+            'Detail URL',
+        ];
+        if ($this->includeImageUrls) {
+            $headings[] = 'Image URLs';
+        }
+        return $headings;
+    }
+
+    public function map($product): array
+    {
+        $row = [
+            $product['title'] ?? '',
+            $product['price'] ?? '',
+            $product['unit_price'] ?? '',
+            $product['product_code'] ?? '',
+            $product['product_definition'] ?? '',
+            $product['detail_url'] ?? '',
+        ];
+        if ($this->includeImageUrls) {
+            $row[] = isset($product['image_urls']) ? implode(',', $product['image_urls']) : '';
+        }
+        return $row;
+    }
+}
+```
+
+Usage Example
+=============
+
+Both scrapers use `ProductsExport.php` similarly:
+
+```bash
+cd C:\xampp\htdocs\MetaMarketing
+php artisan tinker
+```
+
+For `EcommerceScraper.php` (online, includes Image URLs):
+```php
+use App\Services\EcommerceScraper;
+$scraper = new EcommerceScraper();
+$result = $scraper->scrapeProducts('listing_full.mhtml');
+$filePath = $scraper->exportToExcel($result['products']);
+echo $filePath; // Outputs: C:\xampp\htdocs\MetaMarketing\storage\app\exports\products_export_<timestamp>.xlsx
+```
+
+For `OfflineEcommerceScraper.php` (offline, excludes Image URLs):
+```php
+use App\Services\OfflineEcommerceScraper;
+$scraper = new OfflineEcommerceScraper();
+$result = $scraper->scrapeProducts('listing_full.mhtml');
+$filePath = $scraper->exportToExcel($result['products']);
+echo $filePath; // Outputs: C:\xampp\htdocs\MetaMarketing\storage\app\exports\products_export_<timestamp>.xlsx
+```
+
+Notes
+=====
+
+- **Flexibility**: `ProductsExport.php` should dynamically handle the presence or absence of `image_urls` to support both scrapers. The example implementation uses a constructor check.
+- **Performance**: Exporting 164 products to Excel takes ~1-5 seconds, depending on data size and disk I/O.
+- **Environment**: Tested with Laravel 12, PHP 8.2+, Windows, XAMPP, maatwebsite/excel, as of May 18, 2025.
+- **Troubleshooting**:
+  - Check `storage/logs/laravel.log` for errors (e.g., "Failed to export products to Excel").
+  - Verify `storage/app/exports/` permissions with `icacls "C:\xampp\htdocs\MetaMarketing\storage\app\exports" /grant Everyone:F`.
+  - Ensure `maatwebsite/excel` is installed (`composer require maatwebsite/excel`).
+  - If columns mismatch (e.g., missing Image URLs), share `ProductsExport.php` for review.
+- **Customization**:
+  - If `ProductsExport.php` needs separate versions for online and offline scrapers, create `OnlineProductsExport.php` and `OfflineProductsExport.php`.
+  - Adjust mappings for specific formatting (e.g., currency symbols, truncate long descriptions).
+- **Assumptions**:
+  - `ProductsExport.php` exists in `app/Exports/` and supports both scrapers.
+  - Excel output for `OfflineEcommerceScraper.php` has 164 rows, excluding Image URLs.
+  - Excel output for `EcommerceScraper.php` includes Image URLs.
+
+For support, check logs and verify file locations. If issues persist, share `ProductsExport.php` contents, log entries, and directory listing.

@@ -1,0 +1,144 @@
+Purpose of spatie/browsershot
+=============================
+
+spatie/browsershot is a PHP package that uses a headless Chrome or Chromium browser to render web pages, capture screenshots, or generate PDFs. In EcommerceScraper.php, it fetches and renders product detail pages from https://defiletekstil.com to extract data (Price, Product Code, Product Definition, Image URLs) from JavaScript-heavy pages that require full browser rendering. It is not used by OfflineEcommerceScraper.php, which processes pre-saved HTML files offline.
+
+How It Works
+============
+
+1. **Initialization**:
+   - Installed via Composer as `spatie/browsershot`.
+   - Located in `vendor/spatie/browsershot/`.
+   - Requires Node.js and Puppeteer (installed via `npm install puppeteer`) or a Chrome/Chromium binary on the server.
+
+2. **Usage in EcommerceScraper.php**:
+   - Called in the `scrapeDetailPage` method to fetch detail pages:
+     ```php
+     $html = Browsershot::url($detailUrl)
+         ->waitUntilNetworkIdle()
+         ->waitForSelector('div.slick-list img', ['timeout' => 15000])
+         ->timeout(60)
+         ->bodyHtml();
+     ```
+   - Fetches the page (`$detailUrl`), renders JavaScript, and returns the HTML.
+   - Configures:
+     - `waitUntilNetworkIdle()`: Waits for network activity to stop.
+     - `waitForSelector('div.slick-list img', ['timeout' => 15000])`: Waits up to 15 seconds for images to load.
+     - `timeout(60)`: Sets a 60-second overall timeout.
+   - Saves rendered HTML to `storage/app/detail_<md5>_<timestamp>.html` for debugging.
+   - Processes ~2.66-6.75 seconds per product (network, rendering, parsing).
+
+3. **Performance**:
+   - Rendering: ~0.5-2 seconds per page (JavaScript-heavy e-commerce pages).
+   - Selector wait: 1-15 seconds (typically 1-3 seconds).
+   - Network: ~0.05-0.2 seconds (page size ~500 KB-2 MB, 10-100 Mbps).
+   - Total: ~2-5 seconds per detail page, plus 1-second `sleep()` delay.
+   - For 164 products: ~436-1,107 seconds (~7.3-18.5 minutes).
+
+4. **Error Handling**:
+   - Throws exceptions for timeouts or rendering failures, logged to `storage/logs/laravel.log`.
+   - Example: `Failed to fetch detail page ...: TimeoutException`.
+
+Relation to Other Files
+=======================
+
+1. **EcommerceScraper.php**:
+   - Location: `app/Services/EcommerceScraper.php`
+   - Purpose: Uses Browsershot to fetch detail pages online.
+   - Dependency: Imports `Spatie\Browsershot\Browsershot`.
+
+2. **OfflineEcommerceScraper.php**:
+   - Location: `app/Services/OfflineEcommerceScraper.php`
+   - Purpose: Does not use Browsershot, as it processes pre-saved HTML.
+   - Note: No dependency.
+
+3. **Log File**:
+   - Location: `storage/logs/laravel.log`
+   - Purpose: Logs Browsershot errors (e.g., timeouts, rendering issues).
+
+4. **Storage**:
+   - Location: `storage/app/`
+   - Purpose: Saves debug HTML files (`detail_*.html`) from Browsershot.
+
+Where It Should Exist
+=====================
+
+1. **Composer Package**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\vendor\spatie\browsershot\`
+   - Purpose: Contains Browsershot source code.
+   - Installed via: `composer require spatie/browsershot`.
+
+2. **Node.js and Puppeteer**:
+   - Path: Global or project-level Node.js installation; Puppeteer in `node_modules/puppeteer/`.
+   - Purpose: Provides headless Chrome for Browsershot.
+   - Installed via: `npm install puppeteer` in `C:\xampp\htdocs\MetaMarketing`.
+   - Note: Ensure Node.js is installed (`node -v`).
+
+3. **Chrome/Chromium Binary**:
+   - Path: System-level (e.g., `C:\Program Files\Google\Chrome\Application\chrome.exe`) or specified in Browsershot config.
+   - Purpose: Alternative to Puppeteer for rendering.
+   - Note: Configurable via `Browsershot::setChromePath()`.
+
+Example Directory Structure
+===========================
+
+```
+C:\xampp\htdocs\MetaMarketing\
+├── app\
+│   └── Services\
+│       ├── EcommerceScraper.php
+│       └── OfflineEcommerceScraper.php
+├── vendor\
+│   └── spatie\
+│       └── browsershot\
+│           ├── src\
+│           └── ...
+├── node_modules\
+│   └── puppeteer\
+│       ├── .bin\
+│       └── ...
+├── storage\
+│   ├── app\
+│   │   ├── detail_<md5>_<timestamp>.html
+│   │   └── ...
+│   └── logs\
+│       └── laravel.log
+```
+
+Usage Example
+=============
+
+In `EcommerceScraper.php`:
+```php
+use Spatie\Browsershot\Browsershot;
+$html = Browsershot::url('https://defiletekstil.com/tr/gomlek-yaka-onu-dugme-detayli-bluz?RENK=MORR')
+    ->waitUntilNetworkIdle()
+    ->waitForSelector('div.slick-list img', ['timeout' => 15000])
+    ->timeout(60)
+    ->bodyHtml();
+```
+
+Installation
+============
+
+```bash
+cd C:\xampp\htdocs\MetaMarketing
+composer require spatie/browsershot
+npm install puppeteer
+```
+
+Notes
+=====
+
+- **Performance**: Dominant bottleneck in EcommerceScraper.php (~84% of runtime) due to rendering and network latency.
+- **Environment**: Requires Node.js (~400 MB disk) and Chrome/Puppeteer. Tested with Laravel 12, PHP 8.2+, Windows, XAMPP, May 18, 2025.
+- **Troubleshooting**:
+  - Check `storage/logs/laravel.log` for errors (e.g., `TimeoutException`).
+  - Verify Node.js: `node -v`.
+  - Verify Puppeteer: `npm list puppeteer`.
+  - Ensure Chrome path: Update `Browsershot::setChromePath()` if needed.
+  - Test: `php artisan tinker`, `Browsershot::url('https://google.com')->bodyHtml()`.
+- **Limitations**: CPU-intensive, sequential processing, no parallel fetching.
+- **Alternatives**: `guzzlehttp/guzzle` for static pages (faster but no JS rendering).
+
+For support, share logs and verify installations.

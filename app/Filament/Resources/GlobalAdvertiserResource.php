@@ -8,6 +8,8 @@ use App\Models\Advertiser;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Actions\Action;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use App\Filament\Resources\GlobalAdvertiserResource\Pages;
 
@@ -20,7 +22,7 @@ class GlobalAdvertiserResource extends Resource
 
     public static function canAccess(): bool
     {
-        return Auth::user()->role === 'admin'; // Restrict to admin role
+        return Auth::user()->role === 'admin';
     }
 
     public static function form(Form $form): Form
@@ -33,7 +35,7 @@ class GlobalAdvertiserResource extends Resource
                 Forms\Components\TextInput::make('page_id')
                     ->required()
                     ->maxLength(255)
-                    ->helperText('The unique Page ID used for API data fetching.'),
+                    ->helperText('The unique Page ID used for Ad Library data fetching.'),
                 Forms\Components\Textarea::make('notes')
                     ->maxLength(65535),
             ]);
@@ -49,6 +51,9 @@ class GlobalAdvertiserResource extends Resource
                     ->searchable(),
                 TextColumn::make('page_id')
                     ->label('Page ID')
+                    ->sortable(),
+                TextColumn::make('active_ads_count')
+                    ->label('Local Active Ads')
                     ->sortable(),
                 TextColumn::make('notes')
                     ->label('Notes')

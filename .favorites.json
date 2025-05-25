@@ -25,5 +25,41 @@
         "workspaceRoot": null,
         "workspacePath": null,
         "id": "ur23cM1qbzmR0GIZ"
+    },
+    {
+        "type": "File",
+        "name": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Services\\EcommerceScraper.php",
+        "parent_id": null,
+        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Services\\EcommerceScraper.php",
+        "workspaceRoot": null,
+        "workspacePath": null,
+        "id": "jH2cVkT6nepBC9DG"
+    },
+    {
+        "type": "File",
+        "name": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Exports\\ProductsExport.php",
+        "parent_id": null,
+        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\app\\Exports\\ProductsExport.php",
+        "workspaceRoot": null,
+        "workspacePath": null,
+        "id": "sThKSaBNpJLzVUoy"
+    },
+    {
+        "type": "Directory",
+        "name": "c:\\xampp\\htdocs\\MetaMarketing\\storage",
+        "parent_id": null,
+        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\storage",
+        "workspaceRoot": null,
+        "workspacePath": null,
+        "id": "ZzObVD8uYo2gyF0C"
+    },
+    {
+        "type": "Directory",
+        "name": "c:\\xampp\\htdocs\\MetaMarketing\\Notes",
+        "parent_id": null,
+        "fsPath": "c:\\xampp\\htdocs\\MetaMarketing\\Notes",
+        "workspaceRoot": null,
+        "workspacePath": null,
+        "id": "xZhsy02zXB8aMnQq"
     }
 ]

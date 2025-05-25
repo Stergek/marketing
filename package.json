@@ -1,12 +1,10 @@
 {
     "private": true,
-    "type": "module",
     "scripts": {
         "build": "vite build",
         "dev": "vite",
         "build:theme": "npx tailwindcss -i ./resources/css/filament-theme.css -o ./public/css/filament-theme.css --minify",
-         "watch:theme": "npx tailwindcss -i ./resources/css/filament-theme.css -o ./public/css/filament-theme.css --watch"
-        
+        "watch:theme": "npx tailwindcss -i ./resources/css/filament-theme.css -o ./public/css/filament-theme.css --watch"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.10",
@@ -21,7 +19,25 @@
         "vite": "^6.2.4"
     },
     "dependencies": {
-        "filament": "^1.53.4"
-    }
-    
+        "filament": "^1.53.4",
+        "puppeteer": "^24.8.2"
+    },
+    "name": "metamarketing",
+    "version": "1.0.0",
+    "description": "- Fixed date filter reactivity in Campaigns page. - Normalized ad_account_id to remove act_ prefix in database, adding it in API calls. - Reverted date formatting and error handling updates in SyncCampaigns, SyncMetaCampaigns, and MetaAdsService. - Manual sync command: `php artisan sync:campaigns 2025-04-22` (use YYYY-MM-DD format). - Scheduled task syncs daily at 2:00 AM. - Ensure queue worker is running (`php artisan queue:work`) to process jobs.",
+    "main": "tailwind.config.js",
+    "directories": {
+        "test": "tests"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Stergek/marketing.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Stergek/marketing/issues"
+    },
+    "homepage": "https://github.com/Stergek/marketing#readme"
 }

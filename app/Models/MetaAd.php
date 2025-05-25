@@ -7,7 +7,7 @@ class MetaAd extends Model
 {
     protected $fillable = [
         'advertiser_id', 'ad_id', 'ad_snapshot_url', 'creative_body', 'cta',
-        'start_date', 'active_duration', 'media_type', 'impressions', 'platforms'
+        'start_date', 'active_duration', 'media_type', 'platforms', 'type', 'destination'
     ];
 
     protected $casts = [

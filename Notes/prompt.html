@@ -1,0 +1,97 @@
+This is a different e-commerce page can you adapt EcommerceScraper and ProductsExport to this page and name it Missfit for EcommerceScraper, MissfitExport for ProductExport
+I provide necessary html snippets for referencing. Our current EcommerceScraper fetch data in two places. Data for title and price from product card in products list page and other data from detail page for every each. But fro misfitt, all data fetched in the product details page. You can use product card for go to to product details page for each product. And fetch all data from product detail page for each product. I want you fetch title, price, product code, and images. Keep same logic our current EcommerceScrapper and excel ProductExport. 
+
+
+For product list page:
+
+ This is product list link which all products cards in it: //missfit.com.tr/body-23/
+ this is product list main container div: <div class="productListBottom">
+ goes to product detail page: <a href="/body/korsajli-beyaz-body-102/">
+
+ Product card example:
+<div class="productListBottom">
+     <div> 
+        <div class="featuredBox "> 
+         <a href="/body/korsajli-beyaz-body-102/"></a>  
+        </div> 
+    </div> 
+</div>   
+
+
+for detail page:
+
+this is title div:
+<div class="productName">
+<h1>Korsajlı Beyaz Body</h1>
+</div>
+this is price div:
+
+<div class="productDetailsPrice"> 
+    <div class="productPrice"> 
+        <span id="ContentPlaceHolder1_lblPrice" class="rpt-price">410,90 TL</span> 
+    </div>
+</div>
+
+this is product code div:
+<div class="productCode">
+<span id="ContentPlaceHolder1_lblProductCode">1903</span>
+</div>
+
+
+<div class="main">
+                                <div class="productDetailsBoxTop">
+                                    
+                                    <div class="productName">
+                                        <h1>
+                                            Korsajlı Beyaz Body</h1>
+                                    </div>
+                                    <div class="productCode">
+                                        <span id="ContentPlaceHolder1_lblProductCode">1903</span>
+                                    </div>
+                                </div>
+                                <div class="productDetailsBoxBottom">
+
+                                    <div id="ContentPlaceHolder1_uplAddBasket">
+	
+
+                                            <div class="productDetailsPrice">
+                                                
+                                                <div class="productPrice">
+                                                    <span id="ContentPlaceHolder1_lblPrice" class="rpt-price">410,90 TL</span>
+                                                </div>
+                                            </div>
+                                            
+                                            
+                                        
+</div>
+                                    
+                                </div>
+                            </div>
+
+
+this is images container each image is in the li block
+
+there is 2 image source in each li block
+ src="/upload/product/big/2412025-beyazkorsajlibody1903-112324.jpg
+ image:'/upload/product/big/2412025-beyazkorsajlibody1903-112324.jpg
+
+
+<div style="position:absolute;overflow:hidden;width:100%;height:100%;">
+<ul class="thumbelina" style="top: 0px;">
+                        
+                                <li style="display: block;">
+                                    <span>
+                                        <a href="/upload/product/big/2412025-beyazkorsajlibody1903-112324.jpg" title="Korsajlı Beyaz Body" data-fancybox="gallery" class="">
+                                            <img class="cloudzoom-gallery cloudzoom-gallery-active" src="/upload/product/big/2412025-beyazkorsajlibody1903-112324.jpg" alt="Korsajlı Beyaz Body" title="Korsajlı Beyaz Body" data-cloudzoom="useZoom:'.cloudzoom', image:'/upload/product/big/2412025-beyazkorsajlibody1903-112324.jpg'">
+                                        </a></span>
+                                </li>
+                            
+                                <li style="display: block;">
+                                    <span>
+                                        <a href="/upload/product/big/2412025-beyazkorsajlibody19032-112322.jpg" title="Korsajlı Beyaz Body" data-fancybox="gallery" class="fancybox">
+                                            <img class="cloudzoom-gallery" src="/upload/product/big/2412025-beyazkorsajlibody19032-112322.jpg" alt="Korsajlı Beyaz Body" title="Korsajlı Beyaz Body" data-cloudzoom="useZoom:'.cloudzoom', image:'/upload/product/big/2412025-beyazkorsajlibody19032-112322.jpg'">
+                                        </a></span>
+                                </li>
+                            
+                        
+                    </ul></div>

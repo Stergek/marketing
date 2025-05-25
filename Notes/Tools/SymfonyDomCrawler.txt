@@ -1,0 +1,124 @@
+Purpose of symfony/dom-crawler
+=============================
+
+symfony/dom-crawler is a PHP component for parsing and navigating HTML and XML documents using a DOM-based interface. In both EcommerceScraper.php and OfflineEcommerceScraper.php, it parses HTML from listing MHTML files and detail pages (online or pre-saved) to extract product data such as Titles, Prices, Product Codes, Product Definitions, and Image URLs. It provides a simple, jQuery-like syntax for selecting and extracting elements.
+
+How It Works
+============
+
+1. **Initialization**:
+   - Installed via Composer as `symfony/dom-crawler`.
+   - Located in `vendor/symfony/dom-crawler/`.
+   - Used via `Symfony\Component\DomCrawler\Crawler`.
+
+2. **Usage in Scrapers**:
+   - **Listing Parsing**:
+     - Loads MHTML-extracted HTML in `scrapeProducts`:
+       ```php
+       $crawler = new Crawler($html);
+       $productCards = $crawler->filter('.grid-cols-2 div[data-id]');
+       ```
+     - Extracts URLs, Titles, Unit Prices.
+   - **Detail Parsing**:
+     - Loads detail page HTML in `scrapeDetailPage` (online or offline):
+       ```php
+       $crawler = new Crawler($html);
+       $priceNode = $crawler->filter('div.text-gray-600.font-normal.text-base')->first();
+       ```
+     - Extracts Price, Product Code, Product Definition, Image URLs.
+   - Methods:
+     - `filter()`: Selects elements via CSS selectors.
+     - `attr()`, `text()`: Extracts attributes and text.
+     - `each()`: Iterates over nodes.
+   - Performance: ~0.1-0.5 seconds per page (100-500 elements).
+
+3. **Error Handling**:
+   - Handles invalid selectors gracefully (returns empty nodes).
+   - Exceptions logged to `storage/logs/laravel.log` by scrapers (e.g., `Error extracting data ...`).
+
+Relation to Other Files
+=======================
+
+1. **EcommerceScraper.php**:
+   - Location: `app/Services/EcommerceScraper.php`
+   - Purpose: Parses listing MHTML and detail pages.
+   - Dependency: Uses `Symfony\Component\DomCrawler\Crawler`.
+
+2. **OfflineEcommerceScraper.php**:
+   - Location: `app/Services/OfflineEcommerceScraper.php`
+   - Purpose: Parses listing MHTML and pre-saved detail HTML.
+   - Dependency: Uses `Symfony\Component\DomCrawler\Crawler`.
+
+3. **Log File**:
+   - Location: `storage/logs/laravel.log`
+   - Purpose: Logs parsing errors.
+
+4. **Storage**:
+   - Location: `storage/app/`
+   - Purpose: Provides HTML files (MHTML, detail HTML) for parsing.
+
+Where It Should Exist
+=====================
+
+1. **Composer Package**:
+   - Path: `C:\xampp\htdocs\MetaMarketing\vendor\symfony\dom-crawler\`
+   - Purpose: Contains package source code.
+   - Installed via: `composer require symfony/dom-crawler`.
+
+Example Directory Structure
+===========================
+
+```
+C:\xampp\htdocs\MetaMarketing\
+├── app\
+│   └── Services\
+│       ├── EcommerceScraper.php
+│       └── OfflineEcommerceScraper.php
+├── vendor\
+│   └── symfony\
+│       └── dom-crawler\
+│           ├── Crawler.php
+│           └── ...
+├── storage\
+│   ├── app\
+│   │   ├── listing_full.mhtml
+│   │   ├── detail_*.html
+│   │   └── ...
+│   └── logs\
+│       └── laravel.log
+```
+
+Usage Example
+=============
+
+In `EcommerceScraper.php`:
+```php
+use Symfony\Component\DomCrawler\Crawler;
+$crawler = new Crawler($html);
+$productCards = $crawler->filter('.grid-cols-2 div[data-id]');
+$productCards->each(function (Crawler $card) {
+    $title = $card->filter('h2.product-name')->first()->text();
+});
+```
+
+Installation
+============
+
+```bash
+cd C:\xampp\htdocs\MetaMarketing
+composer require symfony/dom-crawler
+```
+
+Notes
+=====
+
+- **Performance**: Fast (~0.1-0.5 seconds per page), negligible in total runtime.
+- **Environment**: Tested with Laravel 12, PHP 8.2+, Windows, XAMPP, May 18, 2025.
+- **Troubleshooting**:
+  - Check `storage/logs/laravel.log` for parsing errors.
+  - Verify package: `composer show symfony/dom-crawler`.
+  - Test: `php artisan tinker`, `use Symfony\Component\DomCrawler\Crawler; $c = new Crawler('<div>test</div>'); echo $c->filter('div')->text();`.
+- **Limitations**: Requires valid HTML. No JavaScript rendering (handled by Browsershot for online).
+- **Alternatives**: `phpQuery`, `DOMDocument` (less user-friendly).
+
+For support, share logs and verify installation.
